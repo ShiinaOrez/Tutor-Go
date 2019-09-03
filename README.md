@@ -5,10 +5,12 @@
 ## 目录
 
 + 0. [什么是Go语言](#什么是Go语言：)
-+ 1. [Go语言的安装]()
++ 1. [Go语言的安装](#Go语言的安装：)
 + 2. [开始我们的第一个例子]()
 + 3. [变量和数据类型]()
 + 4. [基本的程序结构]()
+
+------
 
 ### 什么是Go语言：
 
@@ -57,3 +59,45 @@ Go想要这样做：使用**足够简单的方式**来解决一切问题。并�
 
 扩展阅读：
 + [静态语言和动态语言的区别 - 掘金](https://juejin.im/entry/5c7373426fb9a049bd42eff4)
+
+-----
+
+### Go语言的安装：
+
+不怎么用Windows，所以暂时只有Linux/Ubuntu 18.04的安装
+
+#### Linux/Ubuntu 18.04
+
+① 获取最新的golang安装源，并且更新到apt中
+``add-apt-repository ppa:longsleep/golang-backports``
+
+② apt更新
+``apt-get update``
+
+③ 安装golang
+``sudo apt-get install golang-go``
+
+④ 使用``version``查看版本
+``go version``
+
+#### 关于环境变量：
+
+**GOROOT**: Go语言编译、工具、标准库等的安装路径。
+**GOPATH**：Go语言的工作目录。
+
+#### 良好的目录结构：
+
+```bash
+go/
+├── bin
+├── pkg
+└── src
+    ├── github.com
+    │   ├── Muxi-X
+    |   ├── ...
+    │   └── ShiinaOrez
+    │       ├── goProject1 <- 你的仓库
+    |       └── ...
+    ├── golang.org
+    └── ...
+```
