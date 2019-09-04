@@ -4,15 +4,15 @@
 
 ## 目录
 
-+ 0. [什么是Go语言](#什么是go语言：)
-+ 1. [Go语言的安装](#go语言的安装：)
-+ 2. [开始我们的第一个例子](#开始我们的第一个例子：)
-+ 3. [变量和数据类型]()
++ 0. [什么是Go语言](#什么是go语言)
++ 1. [Go语言的安装](#go语言的安装)
++ 2. [开始我们的第一个例子](#开始我们的第一个例子)
++ 3. [变量和数据类型](#变量和数据类型)
 + 4. [基本的程序结构]()
 
 ------
 
-### 什么是Go语言：
+### 什么是Go语言
 
 打开Go语言的[官网](https://golang.org/)我们可以看到这样一句话：
 
@@ -62,7 +62,7 @@ Go想要这样做：使用**足够简单的方式**来解决一切问题。并�
 
 -----
 
-### Go语言的安装：
+### Go语言的安装
 
 不怎么用Windows，所以暂时只有Linux/Ubuntu 18.04的安装
 
@@ -104,7 +104,7 @@ go/
 
 ------
 
-### 开始我们的第一个例子：
+### 开始我们的第一个例子
 
 众所周知，第一个例子永远是Hello（World之类的），我们也是一样的。
 
@@ -154,5 +154,253 @@ go run: cannot run non-main package
 
 扩展阅读：
 + [深入理解fmt包](https://studygolang.com/articles/17400)
+
+------
+
+### 变量和数据类型
+
+一般来说，强类型语言中的变量是**盒子**，而弱类型语言中的变量则多数是**标签**。
+
+因为强类型，所以一个变量能够分配的内存空间相对来说是便于计算的，因此语言内部会在内存中为你的变量开辟一块内存空间，而这个内存空间的地址会被映射为变量名，而内存空间内存放的数据是什么并不被关心，就像是一个盒子，里面放了不同的数据。
+
+#### 变量的声明：
+
+在Go语言中，声明一个新变量的方式有两种：``var``关键字和``:=``运算符。
+
+**1. 使用var关键字**：
+```go
+var hello string // 声明一个变量hello，类型为string，默认值为string的零值，也就是空字符串。
+var hello string = "Hello, golang!"
+var hello, world string = "Hello", "World" // 可以同时声明多个变量并且初始化
+
+var hello = "Hello, golang!" // 根据右侧值的类型来推断变量类型
+```
+
+**2. 使用:=运算符**
+``:=``运算符用于**简化新变量声明**的步骤，不希望程序员每次用到新变量都去使用``var``来声明。因此``:=``运算符只能用于**新变量的声明**。
+```go
+hello := "Hello, golang!" // 等价为 var hello = "Hello, golang"，也会进行类型的推断
+
+var hello string; hello := "Hello, golang!" // 会报错，即使声明的变量未曾使用过，也不是一个新变量，因此不能使用 := 运算符
+
+hello, err := someFunc() // 便捷地接收函数返回的结果，前提也是一定是新的变量名
+```
+
+#### Go语言的数据类型：
+Go语言的类型系统非常的**简单**且**多变**，不同的组合形式可以产生成百上千上万的类型，也就是说，**通过不同方式的组合，Go语言中可以有无数个类型**。
+
+**1. 基本的数据类型**
+
+| 类型名称 | 标识符 | 描述 |
+| ------ | ----- | ---- |
+| 布尔类型 | bool | 布尔值仅有``true``和``false``两种值 |
+| 字符串类型 | string | 在Go语言中的字符串是不可变的常量 |
+| 字节类型 | byte | 字节类型，实质上是uint8 |
+| Unicode字符类型 | rune | 实质上是int32类型 |
+| 有符号整数类型 | int, int8, int16, int32, int64 | ``int``是基于具体架构的类型，后面的数字代表在内存中所占的位数 |
+| 无符号整数类型 | uint, uint8, uint16, uint32, uint64 | ``uint``是基于具体架构的类型，后面的数字代表在内存中所占的位数 |
+| 浮点数类型 | float32, float64, complex64, complex128 | ``float32``和``float64``都是遵循[IEEE-754标准](https://zh.wikipedia.org/wiki/IEEE_754)，数字依然表示位数，而``complex64``和``complex128``分别表示32位和64位的实数和虚数 |
+
+**2. 派生类型**
+
+**2.1 指针类型（pointer）**
+
+Go语言是内存安全的，但是开放了灵活的指针给程序员使用，又不涉及复杂的指针运算。
+
+在Go语言中的类型都有对应的指针类型，以``*``为标识符，例如：
+
+```go
+var stringPointer *string
+var intPointer *int
+```
+
+指针类型的变量存储着内存地址。可以使用``&``取地址符来获取一个变量的地址。
+
+Go语言中的空指针为``nil``。
+
+**2.2 数组类型（array）**
+
+Go语言中的任意类型都可以有相应**确定长度**的数组类型：
+
+```go
+var fourStringArray [4]string // 一个长度为4的字符串数组
+var int2dArray [4][5]int // 一个长度为4的 长度为5的int数组 的数组，也就是一个二维数组
+```
+
+值得注意的是：这里的**数组名不代表数组的开始地址**！，需要使用``&``来取得首地址，也不建议对它进行指针运算。
+
+定长的原因很简单：可以很好的**确定**内存空间的大小。
+
+**2.3 结构化类型（struct）**
+
+结构体，没有人会陌生，如果这不是你接触的第一门语言的话。
+
+结构化的自定义类型被广泛应用于组织和传递数据，以及Go语言的面向对象也是以结构体作为支撑的。
+例子：
+
+```go
+var myName struct {
+    FirstName  string // 字段名在前，类型名称在后
+    LastName   string
+} // 声明了一个结构体变量
+
+// 定义一个新的结构体类型
+
+type Name struct {
+    FirstName  string
+    LastName   string
+}
+
+// 如何初始化一个结构体变量
+myName := Name {FirstName: "Shiina", LastName: "Mashiro"} // 最后不需要添加逗号
+
+myName := Name {
+    FirstName: "Shiina",
+    LastName:  "Mashiro, // 需要添加逗号
+}
+
+// 使用某个字段
+lastName := myName.LastName
+```
+
+也可以用组合的方式定义新的结构体：
+
+```
+type Info struct {
+    Tel     string
+    Address string
+}
+
+type Detail struct {
+    Name
+    Info
+}
+```
+
+Go语言中没有类 (class)，但是会给相应的类型绑定方法，具体的形式会在后面面向对象的部分进行讲解。
+
+**2.4 通道类型（channel）**
+
+如果你学习过[CSP](https://zh.wikipedia.org/wiki/%E4%BA%A4%E8%AB%87%E5%BE%AA%E5%BA%8F%E7%A8%8B%E5%BC%8F)，或者你是仰慕Go语言的并发语义和并发模式而来，那么你一定知道什么是通道（channel）：**通道是一个可以带有一定缓冲的队列**，用于goroutine之间的通信。
+
+通过一个例子来看一下如何使用（channel可是Go语言的特色之一啊，睁大眼睛）：
+
+```go
+func tryChannel() {
+    ch := make(chan int, 10)       // 使用make函数构造一个缓冲容量为10的int通道
+    for i:=0; i<10; i++ { ch<- i } // 循环的向通道中塞十个数据
+    for value := range ch {        // 遍历通道（循环的取出数据）
+        fmt.Println(value) 
+        if value == 9 { break }    // 这里如果不结束循环的话，会引发DeakLock，具体的原因会在后面讲解，现在只是为了介绍类型
+    }
+    close(ch)                      // 手动关闭通道
+}
+```
+
+如果在``调用make()``方法的时候，没有传入通道的缓冲容量，则默认为0，也就是说同时传入和传出，否则的话只会阻塞。如果程序中的所有goroutine都阻塞了，则会触发DeadLock，这也解释了例子中为什么要中断循环。
+
+channel是具有队列的性质的，也就是[FIFO, First in First out](https://en.wikipedia.org/wiki/FIFO_(computing_and_electronics))，因此把channel当做队列数据结构来用的情况也是很多的（但是我更建议去手动实现和管理）。
+
+**2.5 函数类型（function）**
+
+在越来越多的支持[面向对象](https://zh.wikipedia.org/zh/%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1)编程语言中，函数被当做[一等公民](https://habens.github.io/blog/first-class-citizens/)看待。因此也就有专门的函数对象，变量，类型。
+
+函数变量的类型由几个因素组成：**函数名**、**接收者**、**参数**、**返回值**
+
+例子：
+
+```go
+type compareFunction func(int, int) int
+var min compareFunction = func(x, y int) int {
+    if x < y {
+        return x
+    }
+    return y
+}
+
+fmt.Println(compareFunction(10, 20))
+```
+
+同时函数当然也可以作为参数传入函数。
+
+```go
+func less(x, y int, comp func(int, int) bool) {
+    if comp(x, y) {
+        return x
+    }
+    return y
+}
+
+func tryLess() {
+    comp := func(x, y int) bool { return x < y }
+    fmt.Println(less(10, 20, comp))
+}
+```
+
+匿名函数的使用等等，会在后面进行介绍。
+
+**2.6 切片类型（slice）**
+
+人们总是抱怨数组的定长不够方便，而在[C++ STL](https://www.geeksforgeeks.org/the-c-standard-template-library-stl/)的[vector](https://www.geeksforgeeks.org/vector-in-cpp-stl/)出现后，大家就开始疯狂使用这个名为动态数组的东西，还可以自己开辟内存空间，这真是太好用了！
+
+动态数组出现之后，人们又在其基础之上发明了切片（slice），不仅长度可变，而且有很多利用``[start:end:step]``进行的操作。最典型的便是[Python中的列表](https://www.liaoxuefeng.com/wiki/1016959663602400/1017269965565856)。
+
+但是这是Go语言，所以我们来看看Go语言的切片：
+
+```go
+type intSlice []int  // 在类型定义上，和数组除了长度没有区别
+
+func trySlice() {
+    ints := intSlice{1, 2, 3, 4, 5}
+    fmt.Println(len(ints), ints[1:3])// 使用len方法获取切片的长度，也可以使用cap方法获取切片的容量
+    
+    anotherInts := make(intSlice, 5) // 使用make方法创建一个长度为5的切片
+    copy(anotherInts, ints)          // 使用copy方法复制内容到新切片
+    fmt.Println(append(ints, 6))     // 使用append方法增加新元素到切片，但是不是原地操作
+    fmt.Println(append(ints, anotherInts...))
+}
+```
+
+**2.7 接口类型（interface）**
+
+如果说能让程序员在这个强类型强到天上的语言中找到什么慰藉的，大概就是强大的**接口**了，至于接口是什么，可以看[这个](https://en.wikipedia.org/wiki/Interface_(computing))
+
+定义接口的方式和定义结构体的方式相似：
+```go
+type HumanNature interface {
+    Speak() string   // 接口匹配方法
+    See(interface{}) // 空接口默认可以匹配所有的类型
+}
+```
+
+**接口的知识太多了，放在以后赘述。**
+
+**2.8 映射类型（map）**
+
+映射，很方便，很实用。因为查询的效率，无序性等等。
+
+map的派生类型是由**键类型**和**值类型**共同决定的。常见的构建方式是使用``make()``方法。
+
+```go
+func tryMap() {
+    newMap := make(map[int]string)
+    newMap[1] = "C"           // 插入键值对
+    
+    if value, have := newMap[2]; have { // 通常用这种方式检查是否有对应的键值对
+        // ...some code here
+    } else { fmt.Println("Key: 2 Not Found!") }
+    newMap[2] = "C++"; newMap[3] = "Java"
+    
+    for key, value := range newMap { // 通过这种形式遍历map
+        fmt.Println(key, "-", value)
+    }
+    delete(newMap, 1)                // 通过内置的delete方法来删除键值对
+}
+```
+
+map是使用Go语言时非常常用的类型，不论是编写并发代码还是正常代码，都是**非常重要**的。
+
+我的介绍不尽详细，我**个人的疏忽**可能会导致这个教程的不正确性和不稳定性，欢迎阅读者提出issue。
+还有，我饿了，就先写到这里吧。 -- 2019-09-04
 
 ------
