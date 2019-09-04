@@ -8,7 +8,7 @@
 + 1. [Go语言的安装](#go语言的安装)
 + 2. [开始我们的第一个例子](#开始我们的第一个例子)
 + 3. [变量和数据类型](#变量和数据类型)
-+ 4. [基本的程序结构]()
++ 4. [基本的程序结构](#基本的程序结构)
 
 ------
 
@@ -404,3 +404,102 @@ map是使用Go语言时非常常用的类型，不论是编写并发代码还是
 还有，我饿了，就先写到这里吧。 -- 2019-09-04
 
 ------
+
+### 基本的程序结构
+
+众所周知的基本程序结构有**顺序**，**分支**，**循环**。
+
+顺序就不再赘述，接下来讲解基本常见的分支和循环的书写和常用模式。
+
+#### 常见的分支程序结构和模式：
+
+**1. if-else**
+
+这是**所有**程序员都逃不开的结构，这实在是太重要了。``if-else``背后所潜藏的思想是非常深刻的。**除了True，就是False**。也就是**对于全集取子集和补集**，众所周知：世界是连续的，而计算机是离散的。而``if-else``背后的集合和真值的思想正是**离散**数学中的概念。
+
+结论：``if-else``是**将连续的世界离散化的重要发明**。
+
+**普通的**``if-else``长这个样子：
+
+```go
+if condition_1 { // condition_1的值一定是布尔类型才可以，Go语言的if语句条件非常苛刻，不接受任何布尔类型之外的值
+    // ...some code here
+} else if condition_2 {
+    // ...some code here
+} else {
+    // ...some code here
+}
+```
+
+由于Go语言``if``语句的严苛，我们不可以这么写：
+
+```go
+if 1 {} else {}        // 错
+if "string" {} else {} // 错
+if !nil {} else {}     // 错
+```
+
+**多个返回值的**（或者需要预处理语句的）``if-else``是这个样子的：（之前的类型map介绍中已经提及过了）
+
+```go
+if result, statu := function(); statu { // 在条件语句中的子语句是生效的，但是作用域和生命周期仅限于本语句的作用域
+    // ...some code here, using result  // 使用分号``;``来分割判定的表达式和产生表达式值的语句
+} else {
+    // ...some code here
+}
+// can not use result
+```
+
+在Go语言的规范中，值是否存在，调用是否产生错误，**产生的值都是习惯性的放在返回结果的最后一个**，因此判断时的习惯也是一样的。
+
+**2. switch-case**
+
+为了避免众多的``if-else if-else``来进行大量的值的判断。人们发明了开关语句，也就是经典的``switch-case-default``语句。
+
+大多数语言的``switch-case``语法都是相同的，但是在使用Go语言的``switch-case``语句时，需要小心，因为Go语言的``switch-case``语句是默认每个``case``后面**自带**``break``的，只是**隐藏**了而已。
+
+```go
+switch value {
+case value_1:
+    // ...some code here
+    // 这里有一个隐藏的break，也就是说不会继续执行下一个case
+case value_2:
+    // ...some code here
+    break // 但是这里就算加了break也不会有问题
+case value_3:
+    // ...some code here
+    fallthrough // fallthrough语句可以突破默认的break，可以继续进入下个case
+default:
+    // ...some code here
+}
+```
+
+在Go语言中，大家都乐于使用在类型上没那么严格的接口，但是回过头来又要使用对应的强类型，这就要用到**类型断言**，在别的语言中也很常见的一种语法。而在Go语言这样常见的环境下，更是有对应的``switch-type``模式：
+
+```go
+switch value := i.(type) {
+case T:
+    // here v has type T
+case S:
+    // here v has type S
+default:
+    // no match; here v has the same type as i
+}
+```
+
+**3. select-case**
+
+``select-case``是Go语言特有的语法，用于选择不同的通信操作。哪个通信操作最先不阻塞（收到结果），则最先进入哪个``case``，相比较``switch-case``而言，``select-case``的判断是无序的。语法如下：
+
+```go
+select {
+case communicationClause1:
+    // ...some code here
+case communicationClause2:
+    // ...some code here
+default:
+    // ...some code here
+}
+```
+
+在真实的使用场景中，常常和``for``一起组合为``for-select``使用，这些将会在后面介绍。
