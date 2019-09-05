@@ -401,6 +401,12 @@ func tryMap() {
 
 map是使用Go语言时非常常用的类型，不论是编写并发代码还是正常代码，都是**非常重要**的。
 
+扩展阅读：
+
++ [Data types in Go](https://www.geeksforgeeks.org/data-types-in-go/)
++ [Understanding Data Types in Go](https://www.digitalocean.com/community/tutorials/understanding-data-types-in-go)
++ [Overview of Go Type System](https://go101.org/article/type-system-overview.html)
+
 我的介绍不尽详细，我**个人的疏忽**可能会导致这个教程的不正确性和不稳定性，欢迎阅读者提出issue。
 还有，我饿了，就先写到这里吧。 -- 2019-09-04
 
@@ -541,6 +547,9 @@ for true {}   // 使用while循环的形式实现
 for {}        // 使用Go语言提供的死循环的形式
 ```
 
+扩展阅读：
++ [select机制和常见的坑](https://wudaijun.com/2017/10/go-select/)
+
 ------
 
 ### 开始简单的并发
@@ -567,7 +576,7 @@ func main() {
 
 Goroutine是轻量级的，因此在Go语言的代码中你可以开启**成千上万**的goroutine，这在其他语言中是很难做到的。而进程之间的通信就交给Go语言的``channel``类型来完成（前面有介绍）。
 
-```
+```go
 package main
 
 import "fmt"
@@ -608,5 +617,8 @@ func main() {
 ```
 
 但是在同步goroutine的方面，还是**使用通道来进行通信**是比较推荐的方式。
+
+扩展阅读：
++ [Go语言并发学习wiki](https://github.com/golang/go/wiki/LearnConcurrency)
 
 ------
