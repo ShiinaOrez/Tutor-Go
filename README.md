@@ -307,7 +307,7 @@ channel是具有队列的性质的，也就是[FIFO, First in First out](https:/
 
 在越来越多的支持[面向对象](https://zh.wikipedia.org/zh/%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1)编程语言中，函数被当做[一等公民](https://habens.github.io/blog/first-class-citizens/)看待。因此也就有专门的函数对象，变量，类型。
 
-函数变量的类型由几个因素组成：**函数名**、**接收者**、**参数**、**返回值**
+函数变量的类型由几个因素组成：**函数名**、**参数**、**返回值**
 
 例子：
 
@@ -442,9 +442,17 @@ if condition_1 { // condition_1的值一定是布尔类型才可以，Go语言�
 由于Go语言``if``语句的严苛，我们不可以这么写：
 
 ```go
-if 1 {} else {}        // 错
-if "string" {} else {} // 错
-if !nil {} else {}     // 错
+if 1 {
+} else {
+}     // 错
+
+if "string" {
+} else {
+}     // 错
+
+if !nil {
+} else {
+}     // 错
 ```
 
 **多个返回值的**（或者需要预处理语句的）``if-else``是这个样子的：（之前的类型map介绍中已经提及过了）
@@ -628,18 +636,260 @@ func main() {
 
 #### 6.1 函数声明
 
+函数的组成部分有**名字**, **形参列表**, **可选的返回列表**, **函数体**：
 
+```go
+func functionName(parameter-list) (result-list) {
+    // body
+}
+```
+
+我相信在前面写过的不少示例中，大家已经熟悉了这种声明方式。这是最普通，也是最基础的声明方法。但是Go语言中的函数还有和其他语言不同的地方。
+
+当形参列表中的几个连续类型都相同时，可以选择只写一个类型标识符。
+
+```go
+func min(x, y int) int
+func min(x int, y int) int // 二者是完全相同的
+```
+
+使用4种方式来声明具有**同样函数签名**的函数：
+
+```go
+func add(x int, y int) int { return x+y }      // 正常的声明
+func sub(x, y int) (z int) { z = x-y; return } // 在返回值列表写好变量名，在返回时会自动返回该变量
+func first(x int, _ int)   { return x }        // 下划线强调未使用
+func zero(int, int)        { return 0 }        // 不使用参数的情况
+```
+
+Go语言中的函数声明是非常灵活的。
 
 #### 6.2 递归
 
+和所有的语言一样。Go语言也支持函数的**递归调用**，也就是自身调用自身。
+
+```go
+func dfs(node *TreeNode) { // 一个常见的对于二叉树的中序遍历的例子
+    if node.Left != nil {
+        dfs(node.Left) 
+    } // 调用自身
+    // use this node
+    if node.Right != nil { 
+        dfs(node.Right) 
+    }
+}
+```
+
+整个例子，自己实现一下是很有趣的：
+
+```go
+package main
+
+import "fmt"
+
+type TreeNode struct {
+    Val    int
+    Left   *TreeNode
+    Right  *TreeNode
+}
+
+func dfs(node *TreeNode) {
+    if node.Left != nil { 
+        dfs(node.Left) 
+    }
+    fmt.Println(node.Val)
+    if node.Right != nil { 
+        dfs(node.Right) 
+    }
+}
+
+func main() {
+    // construct a tree here
+    dfs(root)
+}
+```
+
 #### 6.3 多个返回值
+
+现在能够支持多个返回值的语言已经非常普遍了，如``Python``等等。Go语言也是支持多个返回值的，尤其是在错误处理方面，不像其他语言的``try-except``或者``try-catch``模式，而是直接在返回值中加入``err``的值。
+
+下面是摘自[strconv包](https://golang.org/pkg/strconv/#pkg-index)的几个函数原型：
+
+```go
+func ParseBool(str string) (bool, error)
+func ParseFloat(s string, bitSize int) (float64, error)
+func ParseInt(s string, base int, bitSize int) (i int64, err error)
+func ParseUint(s string, base int, bitSize int) (uint64, error)
+```
+
+可以很明显的看出来，由于从字符串解析不同的类型时，经常会出现无法解析，或者解析失败的情况，开发者们在内置函数的**最后一个**返回值放上了**错误信息**。而判定的方式也是非常简单的，因为``error``类型可以和``nil``进行比较：
+
+```go
+_, err := strconv.Atoi("&&")
+if err != nil {
+    // error handle
+}
+```
+
+所以当我们编写自己的函数的时候也要注意返回错误：
+
+```go
+func yourHandler(str string) (int, error) {
+    val, err := strconv.Atoi(str)
+    if err != nil {
+        return 0, err // 将错误返回上层
+    }
+    return val, nil   // 没有错误时返回nil
+}
+```
 
 #### 6.4 函数变量
 
+函数变量在前面的派生类型中已经介绍过了，这里只是简单写一下用法实例。
+
+函数变量的**零值**是``nil``，因此函数变量可以和``nil``进行比较，但是函数变量之间本身是**不可以互相比较**的！
+
+```go
+var f func(int) int  // 变量f为nil
+f(4)                 // 调用一个为零值的函数会出错宕机
+
+if f != nil {
+    f(4)             // 判断函数是否为空
+}
+```
+
+现在在Go语言中，由于现在还不支持泛型程序设计，导致函数变量的地位还不是很高。但是在Go2出现泛型之后，函数变量的地位一定会飙升。
+
 #### 6.5 匿名函数
+
+在Go语言中，匿名函数是非常常见的，除了方便撰写小规模的函数之外，还因为Go语言中的``go``关键字后面**仅允许**接函数，这就导致了匿名函数的大量使用。
+
+普通的使用匿名函数：
+
+```go
+x, y := 10, 20
+fmt.Println(func(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}(x, y))
+```
+
+结合闭包的特性使用匿名函数：
+
+```go
+func squares() func() int {
+    var x int                 // 在返回的匿名函数的眼中，这是一个全局变量，这是由于闭包的性质决定的
+    return func() int {
+        x++
+        return x*x
+    }
+}
+
+func main() {
+    f := squares()
+    fmt.Println(f(), f(), f(), f()) // 1, 4, 9, 16
+}
+```
 
 #### 6.6 变长函数
 
+变长函数被调用的时候可以有可变的参数个数。最常见的就是``fmt.Println()``，那么如何声明一个变长函数呢？
+
+在参数列表的，**最后的类型名称之前**使用省略号``...``，表示声明一个变长函数，调用这个函数的时候可以传递该类型任意数目的参数。
+
+```go
+func sum(vals ...int) int {
+    tot := 0
+    for _, val := range vals { // 在变长函数中，以slice的形式组织多个相同类型的参数
+        tot += val
+    }
+    return tot
+}
+```
+
 #### 6.7 延迟函数调用
 
+所谓**延迟调用**，其实就是讲解一下``defer``关键字的作用。
+
+有的时候，一些操作是需要成对进行的，比如**内存的声明和释放**（malloc、new和free），**文件的打开和关闭**（fopen和fclose）,**数据库的连接和释放**等等。
+
+在编写代码的时候，忘记，或者配对的语句失效的情况是很常见的：比如程序直接panic了，那么接下来的语句也不会执行了。如果你学习过Python语言，那么你一定知道``with``语句和[上下文](https://www.jianshu.com/p/7bae11eaf84d)的概念（Python使用这种方式来确保能够让程序正常运行），而在Go语言中，使用了``defer``关键字来达到这种目的。
+
+``defer``关键字的作用就是**延迟**目标函数的调用，在该语句的作用域退出前再进行执行。
+
+比如：（对之前的示例进行改造）
+
+```go
+func main() {
+    ch := make(chan struct{})
+    defer close(ch)           // 相比之前的结构，我们现在可以使用更舒适的逻辑来编写程序
+    
+    go func() {
+        fmt.Println("Hello, golang!")
+        ch<- struct{}{}
+    }
+    <-ch
+    // close(ch)实际会在这个位置执行
+}
+```
+
+为了证明即使宕机了也可以执行``defer``，我们做个实验：
+
+```go
+func main() {
+    defer fmt.Println("I'am defer.")
+    
+    f := func(int) int
+    f(4)
+}
+```
+
+多个``defer``语句执行的顺序是从后到前的，因为是[栈]()嘛。
+
 #### 6.8 宕机和恢复
+
+宕机和恢复，其实是讲``panic()``和``recover()``这两个Go语言的内置函数。
+
+**1. panic**
+
+当你的程序遇到不可操控的错误时，你的程序会**宕机**，也就是panic，当然我们可以自己去panic，这样往往比Go语言自动的panic更好也更可控，也更利于**trouble-shooting**，使用了panic函数之后你的程序会立刻退出。
+
+```go
+func main() {
+    // ...do something
+    if err != nil { // error can not handle
+        panic(err)  //
+    }
+    // normal logic
+}
+```
+
+**2. recover**
+
+退出程序通常是正常处理宕机的方式，但是也有例外，在**一定情况**下是可以进行恢复的，比如在web开发时，一个具体的handler内部出现了足以让程序宕机的错误，但是这个时候应该做的是返回一个[500](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500)的状态，而不是一直阻塞在那里（程序都崩溃了怎么给response啊）。
+
+如果内置的``recover``函数在延迟函数的内部调用，而且这个包含``defer``语句的函数发生了宕机，``recover``会终止当前的宕机状态并且返回宕机产生的值。函数**不会在宕机的位置继续运行**，而是正常返回。
+
+例如：
+
+```go
+func main() {
+    defer func() {
+        if p := recover(); p != nil {
+            err = fmt.Errorf("Internal Error: %v", p)
+        }
+    }()
+    // ...some code here
+    // 如果这里发生了宕机，会在defer语句中执行错误的输出
+}
+```
+
+扩展阅读：
+
++ [Go语言闭包和匿名函数，一篇就够了](https://www.jianshu.com/p/faf7ef7fbcf8)
++ [Go语言panic和recover用法](https://www.jianshu.com/p/0cbc97bd33fb)
++ [Go语言defer特性详解](https://www.jianshu.com/p/57acdbc8b30a)
+
+------
