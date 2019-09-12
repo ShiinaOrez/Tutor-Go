@@ -1,5 +1,6 @@
 # ginny - 基于Go的web后台开发实战
-# Gin web development: Development Web Backend with Go.
+
+Gin web development: Development Web Backend with Go.
 
 # 第一部分  Gin简介
 
@@ -61,6 +62,8 @@ func main() {
 ```
 
 然后使用以下命令运行它：（不出意外我们默认运行目录下的``main.go``文件）
+
+	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.0``来查看这个示例。
 
 ```bash
 $ go build -o main && ./main
@@ -136,7 +139,7 @@ import "github.com/gin-gonic/gin"
         	c.JSON(400, gin.H{
                 "message": "Bad Request!",
         	})
-        	return
+        	return // 这里若是不返回，还会继续执行下面的逻辑
         }
         c.JSON(200, gin.H{
                 "message": "Hello, " + name + "!",
@@ -161,3 +164,220 @@ import "github.com/gin-gonic/gin"
 如果不包含这个参数的话，比如说访问这个地址：``localhost:8080/hello``
 
 那么你会收获一个[Bad Request](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Status/400)的错误。
+
+	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.1``来查看这个示例。
+
+
+### 2.3  提交JSON数据 -- POST请求
+
+客户端给服务端（也就是后台）发送请求时，数据一般包含在以下几个方面：
+
++ 路径中（path）
+	+ 路径参数（path parameters），比如用户id
+	+ 查询字符串（query string），比如用户名或文章名
++ 头部中（header）
+	+ cookies
+	+ 自定义头部，比如令牌（token）
+	+ 一些固有规则的字段（比如content-type和user-agent）
++ 请求的载荷（payload）
+
+一般来说，GET请求是不会主动发送大量的数据的，一般数据以路径和头部的形式进行携带，因为GET的本意就是**获取资源**而非发送大量的数据。而POST请求一般会携带较多的数据，以请求的载荷（payload）进行发送，而发送时会有各种组织数据的形式，JSON就是其中一种。
+
+我们之前已经使用JSON返回过数据了，相信读者也一定了解JSON了，那么我们这次就来试着处理一下JSON发送过来的数据。
+
+首先我们要学会如何在Go语言中使用结构体表示JSON数据：
+
+```go
+type JSONTest struct {
+    Username    string    `json:"username"`
+    Password    string    `json:"password"`
+}
+```
+
+众所周知，JSON组织数据的形式其实就是一个字典（dict），而Go语言访问结构体中字段是以**属性**而并非**键值对**的方式来访问的，因此需要在结构体中对字段打上"备注"，来让解析JSON字符串的时候能够把相对应的值以字典的形式进行存储。
+
+有了这个结构体之后我们再来看看怎么获得请求发送给我们的数据呢？
+
+使用``gin.Context``的``BindJSON()``方法来获取JSON数据。比如以下实例：
+
+```go
+func handle(c *gin.Context) {
+    var data JSONTest
+    err := c.BindJSON(&data)  // 该方法会返回一个error类型的变量，如果不为nil则为绑定失败
+    // use data.Username or data.Password
+}
+```
+
+所以我们现在可以撰写这样一个路由的处理函数：接受传送的用户名和密码，然后返回二者的拼接字符串。
+
+```go
+// ./main.go
+package main
+
+import "github.com/gin-gonic/gin"
+
+type RegisterPayload struct {
+	Username  string  `json:"username"`
+	Password  string  `json:"password"`
+}
+
+func main() {
+	router := gin.Default()
+	router.POST("/register", func(c *gin.Context) {
+        var data RegisterPayload
+        if err := c.BindJSON(&data); err != nil {
+        	c.JSON(400, gin.H{
+                "message": "Bad Request", // 如果绑定失败，那么我们认定它为一个坏请求，按照规范，状态码应该为400
+        	})
+        	return
+        }
+        c.JSON(200, gin.H{
+            "result": data.Username + data.Password,
+        })
+        return
+	})
+
+	router.Run()
+}
+```
+
+	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.2``来查看这个示例。
+
+现在有个不是问题的问题浮现出来：我们该如何创建一个POST请求？
+
+这里推荐使用工具[Postman](https://www.getpostman.com/)，可以创建一个这样的请求：
+
++ 方法为POST
++ 路径为localhost:8080/register
++ Body选择raw->JSON
+
+这样填写：
+
+```postman
+{
+	"username": "I'm ",
+	"password": "jojo!"
+}
+```
+
+然后点击**Send**，就可以了，不出意外的话你会收到一个"I'm jojo!"的响应。
+
+### 2.4  连接数据库
+
+现在我们遇到了问题，我们的数据只能够在函数中进行操作，而没有办法持久化的来进行数据的存储。
+
+显然我们可以使用一个map变量来充当数据库的作用：
+
+```go
+    database := make(map[string]string) // 以Username为key，Password为value
+```
+
+然后我们就可以实现这样的一个注册（register）接口：如果没注册过，返回用户名和密码的拼接字符串，并且添加到数据库中，否则返回401错误
+
+```go
+    if _, has := database[data.Username]; has {
+    	c.JSON(401, gin.H{
+            "message": "User already existed.",
+    	})
+    }
+```
+
+	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.3``来查看这个示例。
+
+
+**是时候连接一个数据库了！**很明显我们使用变量的方法无法进行数据的持久化，因为我们不能保证程序一直可以运行。
+
+我们这里选择使用[mysql](https://www.mysql.com/cn/)数据库，mysql是一种[关系型数据库](https://zh.wikipedia.org/zh-hans/%E5%85%B3%E7%B3%BB%E6%95%B0%E6%8D%AE%E5%BA%93)。可以存储各个表之间的关系，我们将主要使用它来进行我们博客系统的开发。
+
+#### 2.4.1  安装mysql
+
+我们讨论在Linux/Ubuntu 18.04LTS上安装的情况（欢迎贡献其他环境的方式！）：
+
+```bash
+$ sudo apt update                 // 更新软件源
+$ sudo apt install mysql-server   // 安装mysql-server
+$ sudo mysql_secure_installation  // 运行安全脚本，进行配置
+$ systemctl status mysql.service  // 检查运行情况
+```
+
+	一般来说mysql会运行在机器的**3306**端口。
+
+在本教程中，数据库名称为``go_blog``，密码为``ginny``，但是需要特别提醒大家：**这类敏感信息应该使用环境变量来书写！**
+
+由于本教程不着重于数据库的使用，因此大家可以参考以下资料：
+
++ [安装mysql](https://www.digitalocean.com/community/tutorials/how-to-install-mysql-on-ubuntu-18-04)
++ [mysql教程](http://www.runoob.com/mysql/mysql-tutorial.html)
++ [关系型数据库和非关系型数据库总结](https://juejin.im/post/5d01ed78e51d45775d516f6f)
+
+#### 2.4.2  使用Go语言连接mysql-server
+
+假设我们使用以下脚本创建了表：
+
+```sql
+CREATE TABLE users (
+    id       unsigned int(10) NOT NULL AUTO_INCREMENT,
+    username varchar(64)      NULL DEFAULT NULL,
+    password varchar(64)      NULL DEFAULT NULL,
+  
+    PRIMARY KEY (id)
+)
+```
+
+我们使用user表来存储用户的账号信息：用户名和未加密的明文密码（开发时不要这样做！）
+
+我们导入Go语言的内置包：``database/sql``，并且创建一个数据库对象：
+
+```go
+package main
+
+import (
+	"database/sql"
+    _ "github.com/go-sql-driver/mysql"  // 导入驱动
+	
+	"fmt"
+)
+
+func GetDatabase(username, password, host, port, dbname string) (*sql.DB, error) {
+    address := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", username, password, host, port, dbname)
+    db, err := sql.Open("mysql", address)
+    if err != nil { // 打开失败
+    	return nil, err
+    }
+    err = db.Ping()
+    if err != nil { // 连接失败
+    	return nil, err
+    }
+    return db, nil
+}
+```
+
+然后我们使用这个函数来获取数据库变量：
+
+```go
+    db, err := GetDatabase("root", "ginny", "127.0.0.1", "3306", "go_blog")
+    if err != nil {
+    	panic("Link to database failed! Reason: " + err.Error())  // 结束程序并且打印错误原因
+    }
+```
+
+然后使用sql语句来对数据库进行查询：
+
+```go
+    userID := 0
+    if err = db.QueryRow("SELECT id FROM users WHERE username = ?", data.Username).Scan(&userID); err != nil {
+    	db.Query("INSERT INTO users (username, password) VALUES (?, ?)", data.Username, data.Password)
+    	c.JSON(200, gin.H{
+            "message": data.Username + data.Password,
+    	})
+        return
+    } else {
+        c.JSON(401, gin.H{
+            "message": "User already existed.",
+        })
+    }
+```
+
+然后我们就实现了一个和之前表面上差不多的注册接口，不过我们的数据已经完成了本地的持久化存储！
+
+	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.4``来查看这个示例。
