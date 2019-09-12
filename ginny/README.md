@@ -36,7 +36,7 @@ $ cd ~/go/src/github.com/gin-gonic && git clone https://github.com/gin-gonic/gin
 
 接下的章节我们将认为你的依赖和环境都是安装好的。
 
-## 第2章  以一个简单的实例开始
+## 第2章  以一个简单的注册接口开始
 
 ### 2.1  从Hello, gin!开始
 
@@ -285,7 +285,7 @@ func main() {
 	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.3``来查看这个示例。
 
 
-**是时候连接一个数据库了！**很明显我们使用变量的方法无法进行数据的持久化，因为我们不能保证程序一直可以运行。
+**是时候连接一个数据库了!**很明显我们使用变量的方法无法进行数据的持久化，因为我们不能保证程序一直可以运行。
 
 我们这里选择使用[mysql](https://www.mysql.com/cn/)数据库，mysql是一种[关系型数据库](https://zh.wikipedia.org/zh-hans/%E5%85%B3%E7%B3%BB%E6%95%B0%E6%8D%AE%E5%BA%93)。可以存储各个表之间的关系，我们将主要使用它来进行我们博客系统的开发。
 
@@ -300,7 +300,7 @@ $ sudo mysql_secure_installation  // 运行安全脚本，进行配置
 $ systemctl status mysql.service  // 检查运行情况
 ```
 
-	一般来说mysql会运行在机器的**3306**端口。
+	一般来说mysql会运行在机器的 3306 端口。
 
 在本教程中，数据库名称为``go_blog``，密码为``ginny``，但是需要特别提醒大家：**这类敏感信息应该使用环境变量来书写！**
 
@@ -315,12 +315,12 @@ $ systemctl status mysql.service  // 检查运行情况
 假设我们使用以下脚本创建了表：
 
 ```sql
-CREATE TABLE users (
-    id       unsigned int(10) NOT NULL AUTO_INCREMENT,
-    username varchar(64)      NULL DEFAULT NULL,
-    password varchar(64)      NULL DEFAULT NULL,
+CREATE TABLE `users` (
+    `id`       int unsigned   NOT NULL AUTO_INCREMENT,
+    `username` varchar(64)    NOT NULL,
+    `password` varchar(64)    NOT NULL,
   
-    PRIMARY KEY (id)
+    PRIMARY KEY (`id`)
 )
 ```
 
@@ -381,3 +381,216 @@ func GetDatabase(username, password, host, port, dbname string) (*sql.DB, error)
 然后我们就实现了一个和之前表面上差不多的注册接口，不过我们的数据已经完成了本地的持久化存储！
 
 	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.4``来查看这个示例。
+
+**扩展阅读**：
++ [什么是SQL注入，如何防止？](https://www.calhoun.io/what-is-sql-injection-and-how-do-i-avoid-it-in-go/)
+
+
+## 第3章  整理你的代码 -- 实现一个简单的用户系统
+
+代码写到现在，你会发现我们已经拥有了一个简短（只有60行！），但是却能实现一个基本的后台接口，且能和数据库有交互的程序！这实在是很让人激动！那么接下来保持这股热情，让我们来实现一个基本的用户系统吧！
+
+在此之前，我们要整理一下我们的代码（尽管它只有60行）：
+
+### 3.1  开始整理我们的代码结构
+
+我们的``main.go``里现在包括了几个部分：声明路由，建立数据库连接，还有一个处理函数，但是这些东西都放在一起就会觉得有点乱。所以我们来建立一个良好的目录吧！
+
+重建后的目录结构如下：
+
+```
+.
+├── handler
+│   ├── handler.go
+│   ├── login
+│   └── register
+│       └── register.go
+├── model
+│   ├── init.go
+│   └── user.go
+├── router
+│   └── router.go
+├── main.go
+
+```
+
+然后我们来解释一下各个部分的作用：
+
++ handler
+	+ handler其实就是之前在main.go中的对应路由的处理函数，虽然我们当时使用了匿名函数的方式，但是真正的业务逻辑代码其实就是这个处理函数，因此要抽离出来，这样便于维护和trouble shooting
++ model
+	+ model是模型，主要对应数据库的获取，连接，各个表结构的映射和增删查改的方法。
++ router
+	+ router是路由表，包括以后一些中间件存放的目录
++ main.go
+	+ 应用程序的入口，包含最基本的逻辑
+
+**那么我们开始着手重构吧!**
+
+首先，我们要把数据库的连接和模型都放入model：
+
+```go
+// ./model/init.go
+
+package model
+
+import (
+	"fmt"
+	"log"
+	"database/sql"
+	
+	_ "github.com/go-sql-driver/mysql"
+)
+
+type Database struct {  // 对数据库进行封装
+	Self *sql.DB
+}
+
+var DB *Database
+
+func getDatabase(username, password, host, port, dbname string) (*sql.DB, error) {
+    address := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", username, password, host, port, dbname)
+    fmt.Println("Start to connect:", address)
+    db, err := sql.Open("mysql", address)
+    if err != nil {
+    	return nil, err
+    }
+    err = db.Ping()
+    if err != nil {
+    	return nil, err
+    }
+    return db, nil
+}
+
+func (db *Database) Init() {
+	newdb, err := getDatabase("root", "ginny", "127.0.0.1", "3306", "go_blog")
+	if err != nil {
+		log.Fatal(err)  // 如果有错误，那么打印，而不是直接退出
+	}
+	DB = &Database{
+		Self: newdb,
+	}
+}
+
+func (db *Database) Close() {
+	DB.Self.Close()
+}
+```
+
+这样我们就可以通过调用``model.DB.Self``来使用``*sql.DB``，所以接下来我们要手动封装一些对于数据库增删查改的方法。
+
+```go
+// ./model/user.go
+package model
+
+// 检查数据库中是否有相同用户名的用户
+func CheckUserByUsername(username string) bool {
+	userID := 0
+    err := DB.Self.QueryRow("SELECT  FROM users WHERE username = ?", username).Scan(&userID)
+    return err == nil
+}
+
+// 检查用户名密码是否匹配
+func CheckPasswordValidate(username, password string) bool {
+    var record string
+	err := DB.Self.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&record)
+	return password == record && err == nil
+}
+
+func CreateUser(username, password string) {
+    DB.Self.Query("INSERT INTO users (username, password) VALUES (?, ?)", username, password)
+}
+```
+
+在将数据库操作抽离出来之后，我们可以抽离路由中的处理函数。为什么要先抽离数据库操作呢？因为处理函数的内部实现是依赖数据库操作的。
+
+```go
+// ./handler/register/register.go
+
+package register
+
+import (
+	"github.com/ShiinaOrez/ginny/model"
+	"github.com/gin-gonic/gin"
+)
+
+type RegisterPayload struct {
+	Username  string  `json:"username"`
+	Password  string  `json:"password"`
+}
+
+func Register(c *gin.Context) {
+    var data RegisterPayload
+    if err := c.BindJSON(&data); err != nil {
+    	c.JSON(400, gin.H{
+            "message": "Bad Request!",
+    	})
+    	return
+    }
+    if model.CheckUserByUsername(data.Username) {
+        c.JSON(401, gin.H{
+            "message": "User Already Existed!",
+        })
+        return
+    }
+    model.CreateUser(data.Username, data.Password)
+    c.JSON(200, gin.H{
+        "message": "Register Successful!",
+    })
+    return
+}
+```
+
+到这里我们已经把独立的业务逻辑抽离出来了，可以明显的觉得这样去撰写接口的逻辑是更加简洁和便于维护的。
+
+接下来是router。
+
+```
+// ./router/router.go
+
+package router
+
+import (
+    "github.com/gin-gonic/gin"
+    "github.com/ShiinaOrez/ginny/handler/register"
+)
+
+var Router *gin.Engine
+
+func InitRouter() {
+    Router = gin.Default()
+    Router.POST("/register", register.Register)
+    return
+}
+```
+
+我们定义了``Router``这个全局变量，并且定义了初始化函数。到现在我们已经把model, handler, router都抽离出来了，那么我们的``main.go``应该如何撰写呢？
+
+```go
+// ./main.go
+package main
+
+import (
+	"fmt"
+
+    "github.com/ShiinaOrez/ginny/router"
+    "github.com/ShiinaOrez/ginny/model"
+)
+
+func main() {
+	model.DB.Init()        // 初始化数据库
+	defer model.DB.Close() // 记得关闭数据库
+
+	router.InitRouter()    // 初始化路由
+    router.Router.Run()    // 运行
+    fmt.Println("Running... Successful!")
+}
+```
+
+然后使用以下命令来运行你的程序：
+
+```bash
+go build -o main && ./main
+```
+
+	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.0``来查看这个示例。
