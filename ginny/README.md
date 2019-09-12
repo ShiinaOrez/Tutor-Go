@@ -63,7 +63,7 @@ func main() {
 
 然后使用以下命令运行它：（不出意外我们默认运行目录下的``main.go``文件）
 
-	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.0``来查看这个示例。
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.0``来查看这个示例。
 
 ```bash
 $ go build -o main && ./main
@@ -77,8 +77,8 @@ $ go build -o main && ./main
 [GIN-debug] [WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.
 
 [GIN-debug] [WARNING] Running in "debug" mode. Switch to "release" mode in production.
- - using env:	export GIN_MODE=release
- - using code:	gin.SetMode(gin.ReleaseMode)
+ - using env:    export GIN_MODE=release
+ - using code:    gin.SetMode(gin.ReleaseMode)
 
 [GIN-debug] GET    /hello                    --> main.main.func1 (3 handlers)
 [GIN-debug] Environment variable PORT is undefined. Using port :8080 by default
@@ -136,10 +136,10 @@ import "github.com/gin-gonic/gin"
     router.GET("/hello", func(c *gin.Context) {
         name, ok := c.GetQuery("name")
         if !ok {
-        	c.JSON(400, gin.H{
+            c.JSON(400, gin.H{
                 "message": "Bad Request!",
-        	})
-        	return // 这里若是不返回，还会继续执行下面的逻辑
+            })
+            return // 这里若是不返回，还会继续执行下面的逻辑
         }
         c.JSON(200, gin.H{
                 "message": "Hello, " + name + "!",
@@ -165,7 +165,7 @@ import "github.com/gin-gonic/gin"
 
 那么你会收获一个[Bad Request](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Status/400)的错误。
 
-	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.1``来查看这个示例。
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.1``来查看这个示例。
 
 
 ### 2.3  提交JSON数据 -- POST请求
@@ -173,12 +173,12 @@ import "github.com/gin-gonic/gin"
 客户端给服务端（也就是后台）发送请求时，数据一般包含在以下几个方面：
 
 + 路径中（path）
-	+ 路径参数（path parameters），比如用户id
-	+ 查询字符串（query string），比如用户名或文章名
+    + 路径参数（path parameters），比如用户id
+    + 查询字符串（query string），比如用户名或文章名
 + 头部中（header）
-	+ cookies
-	+ 自定义头部，比如令牌（token）
-	+ 一些固有规则的字段（比如content-type和user-agent）
+    + cookies
+    + 自定义头部，比如令牌（token）
+    + 一些固有规则的字段（比如content-type和user-agent）
 + 请求的载荷（payload）
 
 一般来说，GET请求是不会主动发送大量的数据的，一般数据以路径和头部的形式进行携带，因为GET的本意就是**获取资源**而非发送大量的数据。而POST请求一般会携带较多的数据，以请求的载荷（payload）进行发送，而发送时会有各种组织数据的形式，JSON就是其中一种。
@@ -217,31 +217,31 @@ package main
 import "github.com/gin-gonic/gin"
 
 type RegisterPayload struct {
-	Username  string  `json:"username"`
-	Password  string  `json:"password"`
+    Username  string  `json:"username"`
+    Password  string  `json:"password"`
 }
 
 func main() {
-	router := gin.Default()
-	router.POST("/register", func(c *gin.Context) {
+    router := gin.Default()
+    router.POST("/register", func(c *gin.Context) {
         var data RegisterPayload
         if err := c.BindJSON(&data); err != nil {
-        	c.JSON(400, gin.H{
+            c.JSON(400, gin.H{
                 "message": "Bad Request", // 如果绑定失败，那么我们认定它为一个坏请求，按照规范，状态码应该为400
-        	})
-        	return
+            })
+            return
         }
         c.JSON(200, gin.H{
             "result": data.Username + data.Password,
         })
         return
-	})
+    })
 
-	router.Run()
+    router.Run()
 }
 ```
 
-	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.2``来查看这个示例。
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.2``来查看这个示例。
 
 现在有个不是问题的问题浮现出来：我们该如何创建一个POST请求？
 
@@ -255,8 +255,8 @@ func main() {
 
 ```postman
 {
-	"username": "I'm ",
-	"password": "jojo!"
+    "username": "I'm ",
+    "password": "jojo!"
 }
 ```
 
@@ -276,13 +276,13 @@ func main() {
 
 ```go
     if _, has := database[data.Username]; has {
-    	c.JSON(401, gin.H{
+        c.JSON(401, gin.H{
             "message": "User already existed.",
-    	})
+        })
     }
 ```
 
-	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.3``来查看这个示例。
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.3``来查看这个示例。
 
 
 **是时候连接一个数据库了!**很明显我们使用变量的方法无法进行数据的持久化，因为我们不能保证程序一直可以运行。
@@ -300,7 +300,7 @@ $ sudo mysql_secure_installation  // 运行安全脚本，进行配置
 $ systemctl status mysql.service  // 检查运行情况
 ```
 
-	一般来说mysql会运行在机器的 3306 端口。
+    一般来说mysql会运行在机器的 3306 端口。
 
 在本教程中，数据库名称为``go_blog``，密码为``ginny``，但是需要特别提醒大家：**这类敏感信息应该使用环境变量来书写！**
 
@@ -332,21 +332,21 @@ CREATE TABLE `users` (
 package main
 
 import (
-	"database/sql"
+    "database/sql"
     _ "github.com/go-sql-driver/mysql"  // 导入驱动
-	
-	"fmt"
+    
+    "fmt"
 )
 
 func GetDatabase(username, password, host, port, dbname string) (*sql.DB, error) {
     address := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", username, password, host, port, dbname)
     db, err := sql.Open("mysql", address)
     if err != nil { // 打开失败
-    	return nil, err
+        return nil, err
     }
     err = db.Ping()
     if err != nil { // 连接失败
-    	return nil, err
+        return nil, err
     }
     return db, nil
 }
@@ -357,7 +357,7 @@ func GetDatabase(username, password, host, port, dbname string) (*sql.DB, error)
 ```go
     db, err := GetDatabase("root", "ginny", "127.0.0.1", "3306", "go_blog")
     if err != nil {
-    	panic("Link to database failed! Reason: " + err.Error())  // 结束程序并且打印错误原因
+        panic("Link to database failed! Reason: " + err.Error())  // 结束程序并且打印错误原因
     }
 ```
 
@@ -366,10 +366,10 @@ func GetDatabase(username, password, host, port, dbname string) (*sql.DB, error)
 ```go
     userID := 0
     if err = db.QueryRow("SELECT id FROM users WHERE username = ?", data.Username).Scan(&userID); err != nil {
-    	db.Query("INSERT INTO users (username, password) VALUES (?, ?)", data.Username, data.Password)
-    	c.JSON(200, gin.H{
+        db.Query("INSERT INTO users (username, password) VALUES (?, ?)", data.Username, data.Password)
+        c.JSON(200, gin.H{
             "message": data.Username + data.Password,
-    	})
+        })
         return
     } else {
         c.JSON(401, gin.H{
@@ -380,7 +380,7 @@ func GetDatabase(username, password, host, port, dbname string) (*sql.DB, error)
 
 然后我们就实现了一个和之前表面上差不多的注册接口，不过我们的数据已经完成了本地的持久化存储！
 
-	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.4``来查看这个示例。
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.1.4``来查看这个示例。
 
 **扩展阅读**：
 + [什么是SQL注入，如何防止？](https://www.calhoun.io/what-is-sql-injection-and-how-do-i-avoid-it-in-go/)
@@ -410,20 +410,20 @@ func GetDatabase(username, password, host, port, dbname string) (*sql.DB, error)
 │   └── user.go
 ├── router
 │   └── router.go
-├── main.go
+└── main.go
 
 ```
 
 然后我们来解释一下各个部分的作用：
 
 + handler
-	+ handler其实就是之前在main.go中的对应路由的处理函数，虽然我们当时使用了匿名函数的方式，但是真正的业务逻辑代码其实就是这个处理函数，因此要抽离出来，这样便于维护和trouble shooting
+    + handler其实就是之前在main.go中的对应路由的处理函数，虽然我们当时使用了匿名函数的方式，但是真正的业务逻辑代码其实就是这个处理函数，因此要抽离出来，这样便于维护和trouble shooting
 + model
-	+ model是模型，主要对应数据库的获取，连接，各个表结构的映射和增删查改的方法。
+    + model是模型，主要对应数据库的获取，连接，各个表结构的映射和增删查改的方法。
 + router
-	+ router是路由表，包括以后一些中间件存放的目录
+    + router是路由表，包括以后一些中间件存放的目录
 + main.go
-	+ 应用程序的入口，包含最基本的逻辑
+    + 应用程序的入口，包含最基本的逻辑
 
 **那么我们开始着手重构吧!**
 
@@ -435,15 +435,15 @@ func GetDatabase(username, password, host, port, dbname string) (*sql.DB, error)
 package model
 
 import (
-	"fmt"
-	"log"
-	"database/sql"
-	
-	_ "github.com/go-sql-driver/mysql"
+    "fmt"
+    "log"
+    "database/sql"
+    
+    _ "github.com/go-sql-driver/mysql"
 )
 
 type Database struct {  // 对数据库进行封装
-	Self *sql.DB
+    Self *sql.DB
 }
 
 var DB *Database
@@ -453,27 +453,27 @@ func getDatabase(username, password, host, port, dbname string) (*sql.DB, error)
     fmt.Println("Start to connect:", address)
     db, err := sql.Open("mysql", address)
     if err != nil {
-    	return nil, err
+        return nil, err
     }
     err = db.Ping()
     if err != nil {
-    	return nil, err
+        return nil, err
     }
     return db, nil
 }
 
 func (db *Database) Init() {
-	newdb, err := getDatabase("root", "ginny", "127.0.0.1", "3306", "go_blog")
-	if err != nil {
-		log.Fatal(err)  // 如果有错误，那么打印，而不是直接退出
-	}
-	DB = &Database{
-		Self: newdb,
-	}
+    newdb, err := getDatabase("root", "ginny", "127.0.0.1", "3306", "go_blog")
+    if err != nil {
+        log.Fatal(err)  // 如果有错误，那么打印，而不是直接退出
+    }
+    DB = &Database{
+        Self: newdb,
+    }
 }
 
 func (db *Database) Close() {
-	DB.Self.Close()
+    DB.Self.Close()
 }
 ```
 
@@ -485,7 +485,7 @@ package model
 
 // 检查数据库中是否有相同用户名的用户
 func CheckUserByUsername(username string) bool {
-	userID := 0
+    userID := 0
     err := DB.Self.QueryRow("SELECT  FROM users WHERE username = ?", username).Scan(&userID)
     return err == nil
 }
@@ -493,8 +493,8 @@ func CheckUserByUsername(username string) bool {
 // 检查用户名密码是否匹配
 func CheckPasswordValidate(username, password string) bool {
     var record string
-	err := DB.Self.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&record)
-	return password == record && err == nil
+    err := DB.Self.QueryRow("SELECT password FROM users WHERE username = ?", username).Scan(&record)
+    return password == record && err == nil
 }
 
 func CreateUser(username, password string) {
@@ -510,22 +510,22 @@ func CreateUser(username, password string) {
 package register
 
 import (
-	"github.com/ShiinaOrez/ginny/model"
-	"github.com/gin-gonic/gin"
+    "github.com/ShiinaOrez/ginny/model"
+    "github.com/gin-gonic/gin"
 )
 
 type RegisterPayload struct {
-	Username  string  `json:"username"`
-	Password  string  `json:"password"`
+    Username  string  `json:"username"`
+    Password  string  `json:"password"`
 }
 
 func Register(c *gin.Context) {
     var data RegisterPayload
     if err := c.BindJSON(&data); err != nil {
-    	c.JSON(400, gin.H{
+        c.JSON(400, gin.H{
             "message": "Bad Request!",
-    	})
-    	return
+        })
+        return
     }
     if model.CheckUserByUsername(data.Username) {
         c.JSON(401, gin.H{
@@ -571,17 +571,17 @@ func InitRouter() {
 package main
 
 import (
-	"fmt"
+    "fmt"
 
     "github.com/ShiinaOrez/ginny/router"
     "github.com/ShiinaOrez/ginny/model"
 )
 
 func main() {
-	model.DB.Init()        // 初始化数据库
-	defer model.DB.Close() // 记得关闭数据库
+    model.DB.Init()        // 初始化数据库
+    defer model.DB.Close() // 记得关闭数据库
 
-	router.InitRouter()    // 初始化路由
+    router.InitRouter()    // 初始化路由
     router.Router.Run()    // 运行
     fmt.Println("Running... Successful!")
 }
@@ -593,4 +593,4 @@ func main() {
 go build -o main && ./main
 ```
 
-	提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.0``来查看这个示例。
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.0``来查看这个示例。
