@@ -545,7 +545,7 @@ func Register(c *gin.Context) {
 
 接下来是router。
 
-```
+```go
 // ./router/router.go
 
 package router
@@ -594,3 +594,67 @@ go build -o main && ./main
 ```
 
     提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.0``来查看这个示例。
+
+然后让我们来实现用户系统的其他接口，但是用户系统应该有哪些接口呢？
+
+### 3.2  Let‘s 实现一个用户系统吧！
+
+首先，除了注册接口，我们还需要一个登录接口吧，不妨叫做``login``，实现的功能应该是：提供用户名和密码，如果匹配成功则返回200，否则返回401（这里我们只实现最简单的接口，**它当然不够健壮**，但是我们以后会让他变得健壮起来）
+
+我们会用到``model``中的``CheckPasswordValidate()``方法：
+
+```go
+// ./handler/login/login.go
+
+package login
+
+import (
+    "github.com/ShiinaOrez/ginny/model"
+    "github.com/gin-gonic/gin"
+)
+
+type LoginPayload struct {  // 用于接收payload的结构体
+    Username  string  `json:"username"`
+    Password  string  `json:"password"`
+}
+
+func Login(c *gin.Context) { // 用于登录路由的处理函数
+    var data LoginPayload    // 声明payload变量，因为BindJSON方法需要接收一个指针进行操作
+    if err := c.BindJSON(&data); err != nil {
+        c.JSON(400, gin.H{
+            "message": "Bad Request!", // 接收过程中的错误视为Bad Request
+        })
+        return
+    }
+    if !model.CheckPasswordValidate(data.Username, data.Password) { // 检查失败的情况
+        c.JSON(401, gin.H{
+            "message": "Authentication Failed.",
+        })
+        return
+    } else {
+        c.JSON(200, gin.H{
+            "message": "Authentiaction Success.",
+        })
+    }
+    return
+}
+```
+
+然后我们只需要在``./router/router.go``中加入这样一行代码就可以使用这个函数了：
+
+```go
+    Router.POST("/login", login.Login)
+```
+
+接下来我们启动程序，当我们POST请求``localhost:8080/login``接口时，就可以获得我们预期中的效果了。
+
+一个简单的用户系统大致需要以下接口：
+
++ 注册/登录接口
++ 更改密码/忘记密码接口
+
+然后读者可以去试着自己实现这两个接口，当然也可以直接看这个教程的[示例仓库](https://github.com/ShiinaOrez/ginny)
+
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.1``来查看这个示例。
+
+
