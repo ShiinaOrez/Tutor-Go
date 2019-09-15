@@ -658,3 +658,104 @@ func Login(c *gin.Context) { // 用于登录路由的处理函数
     提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.1``来查看这个示例。
 
 
+## 第4章  工具函数、错误处理还有中间件
+
+现在你会发现自己可以轻松自由地写出大量的接口：如果你想的话，甚至可以一天写上百个接口！
+
+但是在这样野蛮的构建你的应用的时候，你总会觉得有点不适：要写大量的``c.JSON()``和``gin.H{}``，在每次的开头几乎都会check一下``BadRequest``的情况，虽然实际上是一种错误，但是我们只是返回了字符串而已。
+
+接下来的几个小节，我们将会再次小小的``重构``我们的代码。
+
+### 4.1  工具函数：重用你的代码片段
+
+首先我们要知道我们的第一个目的是什么：让我们不用再在``handler``中写``c.JSON()``!
+
+那我们在撰写工具函数之前，我们应该更加多的去了解``c.JSON()``方法和``gin.H``类型：
+
+#### 4.1.1 gin生成响应的方式
+
+让我们打开``gin.Context``所在的[文件](https://github.com/gin-gonic/gin/blob/master/context.go), 我们找到了这样几个方法：
+
+```go
+func (c *Context) JSON(code int, obj interface{}) {}
+
+func (c *Context) Status(code int) {}
+
+func (c *Context) Abort() {}
+func (c *Context) AbortWithStatus(code int) {}
+func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {}
+func (c *Context) AbortWithError(code int, err error) *Error {}
+```
+
+一般来说，响应分为**两**部分：一是状态码，二是主体信息，状态码用来简单的标识响应的信息：比如：
+
++ 200 OK
++ 400 Bad Request
++ 401 Unauthorized
++ 404 Not Found
++ 405 Method Not Allowed
+
+就像上面这样，我们可以通过一个响应的状态码来轻松的对其进行分类，返回的信息就包含在返回的body里面。
+
+``context.JSON()``方法接受状态码和一个任意类型的``object``，然后内部调用``context.Render()``方法：首先使用``context.Status()``方法来产生响应的状态码，然后再处理body部分。
+
+所以看其他的方法，``context.Abort()``方法是用来中断对于剩余``编程部件``的使用的方法。至于什么是编程部件，我会在中间件的部分去讲解。**但是要注意！abort和返回一个响应完全是两个概念！**
+
+由此来看，``AbortWithStatus()``, ``AbortWithStatusJSON()``和``AbortWithError()``其实都是由以上几个方法拼接而来的。
+
+我们返回的响应无非包括以下两个大类：**预料内的**和**预料外的**，所谓预料内的就是指我们知道发生错误的详细情况和类别，或者是根本没有错误。而预料外的错误，则是由更加底层的接口产生的错误来提供详细说明情况的。
+
+所以我们可以在``./handler/handler.go``中封装我们自己的工具函数：
+
+```go
+// ./handler/handler.go
+package handler
+
+import (
+    "net/http"
+    "github.com/gin-gonic/gin"
+)
+
+func SendResponse(c *gin.Context, data interface{}) {
+    c.JSON(http.StatusOK, data)
+}
+
+func SendUnauthorized(c *gin.Context) {
+    c.AbortWithStatus(http.StatusUnauthorized)
+}
+
+func SendBadRequest(c *gin.Context) {
+    c.AbortWithStatus(http.StatusBadRequest)
+}
+
+func SendNotFound(c *gin.Context) {
+    c.AbortWithStatus(http.StatusNotFound)
+}
+```
+
+有了这些函数，我们就可以这样去重写我们的handler：
+
+```go
+// ./handler/register/register.go
+
+import "github.com/ShiinaOrez/ginny/handler"
+
+func Register(c *gin.Context) {
+    var data RegisterPayload
+    if err := c.BindJSON(&data); err != nil {
+        handler.SendBadRequest(c)
+        return
+    }
+    if model.CheckUserByUsername(data.Username) {
+        handler.SendUnauthorized(c)
+        return
+    }
+    model.CreateUser(data.Username, data.Password)
+    handler.SendResponse(c, "Successful!")
+    return
+}
+```
+
+显然我们代码的可读性更强了，我们的代码也可以变得更加精简。但是也有问题暴露出来：比如产生``NotFound``错误的方式不止一种，可能是``UserNotFound``，也有可能是``BlogNotFound``，我们的数据库中有多少种实体，就有多少种NotFound，而我们只使用一个``SendNotFound()``方法的话，就是以一概全，这是不对的。所以在下面我们会进行下一个主题：错误处理。
+
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.2``来查看这个示例。
