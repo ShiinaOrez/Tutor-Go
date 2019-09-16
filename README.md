@@ -4,13 +4,14 @@
 
 ## 目录
 
-+ 0. [什么是Go语言](#什么是go语言)
-+ 1. [Go语言的安装](#go语言的安装)
++ 0. [什么是Go语言](#什么是Go语言)
++ 1. [Go语言的安装](#Go语言的安装)
 + 2. [开始我们的第一个例子](#开始我们的第一个例子)
 + 3. [变量和数据类型](#变量和数据类型)
 + 4. [基本的程序结构](#基本的程序结构)
 + 5. [开始简单的并发](#开始简单的并发)
 + 6. [Go语言中的函数](#Go语言中的函数)
++ 7. [Go语言中的面向对象](#Go语言中的面向对象)
 
 ------
 
@@ -891,5 +892,191 @@ func main() {
 + [Go语言闭包和匿名函数，一篇就够了](https://www.jianshu.com/p/faf7ef7fbcf8)
 + [Go语言panic和recover用法](https://www.jianshu.com/p/0cbc97bd33fb)
 + [Go语言defer特性详解](https://www.jianshu.com/p/57acdbc8b30a)
+
+------
+
+### Go语言中的面向对象
+
+作为一门**现代**高级编程语言，Go语言当然支持**面向对象**的编程思想。但是和C++中**萌芽初现**的[面向对象](https://www.geeksforgeeks.org/object-oriented-programming-in-cpp/)以及Java信奉的[绝对的面向对象](https://www.geeksforgeeks.org/object-oriented-programming-oops-concept-in-java/)相比，Go语言的面向对象显然是太不合群了。
+
+如果你使用过C++，那么你会知道面向对象的基础是对于**类**(``class``)的抽象，事实上Java也是这样。如果你对于面向对象是什么都不清楚的话，我觉得你需要看一下下面这篇文章：[维基百科-面向对象程序设计](https://zh.wikipedia.org/wiki/%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1%E7%A8%8B%E5%BA%8F%E8%AE%BE%E8%AE%A1)
+
+好了，现在开始我认为你了解了基本的面向对象程序设计的知识，那么你会不会也认为Go语言也会有一个名为``class``的关键字？毕竟C++，Java，Python都是这样的啊。
+
+事实上，Go语言**确实没有**一个名为``class``的关键字用来声明一个类，甚至都没有类的概念。Go语言实现面向对象的基石是**结构体**。
+
+接下来我们写一个最简单的面向对象的例子：
+
+```go
+package main
+
+import "fmt"
+
+type HumanName struct {
+    FirstName   string
+    LastName    string
+}
+
+type Human struct {
+    Name   HumanName
+    From   string
+}
+
+func (human *Human) Speak() { // 为类型Human声明方法Speak
+    fmt.Println("I'm", human.Name.FirstName, human.Name.LastName+", and I came from", human.From)
+}
+
+func main() {
+    tom := Human{
+        Name: HumanName{
+            FirstName: "Jupter",
+            LastName:  "Tom",
+        },
+        From: "USA",
+    }           // 创建一个Human类型的实例
+    tom.Speak() // 调用实例的方法
+}
+```
+
+现在你应该恍然大悟了，原来Go语言没有类，只有类型。只不过可以**给特定类型绑定上方法**。而原来类中的属性就对应复合类型中的字段。只是知道这点就可以让我们进行简单的面向对象编程了。但是这还远远不够，我们还有很多问题没有解释清楚。
+
+#### 7.1  方法
+
+比如绑定在**类型**上的方法和绑定在**类型指针**上的方法的区别？Go语言这样一个强类型语言，一定会在这上面有特别的区分吧！
+
+```go
+func (human *Human) Speak1() {} // 绑定在类型指针上，为指针方法
+func (human Human)  Speak2() {} // 绑定在类型上，为值方法
+// 非常奇妙的事情，明明是不同的方法接收者，但是却不能使用同样的方法名
+```
+
+在Go语言官方文档中有[关于方法的值接收者和指针接收者](https://golang.org/doc/effective_go.html#pointers_vs_values)的区别
+
+对于没有涉及内存的操作（比如说打印一段话，使用值进行计算），值接收者和指针接收者没有什么区别，毕竟都可以使用``.``来取得值。
+
+但是如果涉及到了值的改变，也就是对于内存的操作，事情就变得麻烦起来：
+
+```go
+package main
+
+import "fmt"
+
+type TestInt int
+
+func (value TestInt) Increase1() {
+    value += 1
+}
+
+func (pointer *TestInt) Increase2() {
+    (*pointer) += 1
+}
+
+func main() {
+    var number TestInt = 1
+    numberPointer := &number
+    
+    fmt.Println(number) // 1
+    number.Increase1()
+    fmt.Println(number) // 1
+    numberPointer.Increase2()
+    fmt.Println(number) // 2
+}
+```
+
+很明显，也是我们预料中的结果，因为一个是对于传入的临时值进行了改变，而没有涉及``main``函数中定义的``number``变量。而传入指针可以让我们很好的操作内存空间。
+
+我们这个示例中，对于值接收者和指针接收者都有不同的方法。但是对于**值/指针**调用**值方法/指针方法**的情况，我们还需要进行探讨。
+
+```go
+// 我们只保留值方法
+func (value TestInt) Increase() {
+    value += 1
+}
+
+func main() {
+    var number TestInt = 1
+    numberPointer := &number
+
+    fmt.Println(number) // 1
+    number.Increase()
+    fmt.Println(number) // 1
+    numberPointer.Increase()
+    fmt.Println(number) // 1
+}
+```
+
+我们运行这个代码，居然没有任何的错误信息！它照常的运行了。只不过值方法仍然没能改变值的值。使用指针调用值方法的时候，只会传入指针对应的值，而这个转换过程是Go语言内部执行的。实际效果：
+
+```go
+(*numberPointer).Increase()
+```
+
+如果我们**只保留指针方法**呢？结果是显而易见的
+
+```go
+func (pointer *TestInt) Increase() {
+    (*pointer) += 1
+}
+
+func main() {
+    var number TestInt = 1
+    numberPointer := &number
+    
+    fmt.Println(number) // 1
+    number.Increase()
+    fmt.Println(number) // 2
+    numberPointer.Increase()
+    fmt.Println(number) // 3
+}
+```
+
+也就是说，当只有对应的指针方法存在时，会将值的指针传入来调用指针方法，也就是说实际是这样的：
+
+```go
+(&number).Increase()
+```
+
+也就是说，Go语言会自动寻找和匹配当前最好的方法匹配策略：
+
++ 如果同时兼有值方法和指针方法，会分别进行调用
++ 如果只有值方法，会隐式转换指针为值进行调用
++ 如果只有指针方法，会隐式转换值为指针进行调用
+
+#### 7.2 embedding而非extends
+
+说到面向对象的时候，大家就会想到几个词：**封装**，**继承**，**多态**
+
+不太凑巧，你在Go语言中，可能除了封装都见不到...
+
+传统意义上的继承是指一种``is a ``的关系，比如``pig is an animal``，猪是一个动物，那么猪**类**就应该继承自动物**类**，动物能做的猪也都能做，而猪又有自己特有的方法和属性。
+
+但是很遗憾，Go语言中并没有继承的概念，有的只是**组合**。因为面向对象依托于结构体的实现，因此一个新的类型只能通过组合的方式来产生：
+
+```go
+type Eyes  string // 眼睛类型
+type Mouth string // 嘴类型
+type Nose  string // 鼻子类型
+type Ears  string // 耳朵类型
+
+func (ears *Ears) Hear(s string) { // 耳朵类型的指针听方法
+    fmt.Println(s)
+}
+
+type Face struct { // 脸类型，由各个部分拼接而成
+    Eyes
+    Mouth
+    Nose
+    Ears
+}
+
+func main() {
+    face := Face{}
+    face.Hear("Golang is the best!") // 获得了耳朵的方法
+}
+```
+
+就像上面的例子，``Face``获得了``Ears``的方法，和``is a``的关系相比，更像是一种寄生的关系。
+
+并且，在Go语言中是**没有**[函数重载](https://www.runoob.com/cplusplus/cpp-overloading.html)的。
 
 ------
