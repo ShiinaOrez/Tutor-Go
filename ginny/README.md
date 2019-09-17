@@ -759,3 +759,130 @@ func Register(c *gin.Context) {
 显然我们代码的可读性更强了，我们的代码也可以变得更加精简。但是也有问题暴露出来：比如产生``NotFound``错误的方式不止一种，可能是``UserNotFound``，也有可能是``BlogNotFound``，我们的数据库中有多少种实体，就有多少种NotFound，而我们只使用一个``SendNotFound()``方法的话，就是以一概全，这是不对的。所以在下面我们会进行下一个主题：错误处理。
 
     提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.2``来查看这个示例。
+
+### 4.2  错误处理
+
+我们在实现一段业务逻辑的时候，经常会遇到各种复杂场景的错误，因此定义**特殊的**错误类型是很有必要的。一是方便我们自定义错误，二是有利于错误信息的传递。然后让我们来自定义一个自己的错误类型：
+
+```go
+type Error struct {
+    ErrorCode  string   `json:"error_code"`
+    Message    string   `json:"message"`
+}
+```
+
+``Error.ErrorCode``字段是用于唯一标识一个具体错误的字符串。而``Error.Message``是对于该错误的具体描述。
+
+比如我们可以声明一个``Bad Request``的错误：
+
+```go
+var (
+    ErrorBadRequest = &Error{
+        ErrorCode: "0001",
+        Message:   "Bad Request!",
+    }
+)
+```
+
+这样做的话，我们就可以自定义一些错误，然后在产生具体错误的时候返回之。（毕竟参数是``interface{}``类型嘛）比如我们再次改造一下我们的``register.go``
+
+现在的目录结构：
+
+```
+.
+├── handler
+│   ├── handler.go
+│   ├── ...
+│   └── register
+│       └── register.go
+├── model
+│   ├── init.go
+│   └── user.go
+├── pkg
+│   └── errno
+│       ├── errno.go // 声明了错误类型和相应的方法
+│       └── code.go  // 存放错误常量
+├── router
+│   └── router.go
+└── main.go
+```
+
+```go
+// ./pkg/errno/errno.go
+
+package errno
+
+import "fmt"
+
+type Error struct {
+    ErrorCode  string  `json:"error_code"`
+    Message    string  `json:"message"`
+}
+
+func (err *Error) Error() string { // 满足内置的error接口
+    return fmt.Sprintf("Error(%s): %s.", err.ErrorCode, err.Message)
+}
+```
+
+```go
+// ./pkg/errno/code.go
+
+package errno
+
+var (
+    // 由于各种原因导致的Bad Request
+    PayloadBadRequest = &Error{ErrorCode: "00001", Message: "Bad Request: lack of payload."}
+    ParamBadRequest   = &Error{ErrorCode: "00002", Message: "Bad Request: lack of parameters."}
+    
+    // User类型相关的错误
+    UserNotFound      = &Error{ErrorCode: "10001", Message: "DB: User Not Found!"}
+    UserAleadyExisted = &Error{ErrorCode: "10002", Message: "Register: User already existed!"}
+)
+```
+
+```go
+// ./handler/handler.go
+
+func SendUnauthorized(c *gin.Context, err error) {
+    c.AbortWithStatusJSON(http.StatusUnauthorized, err)
+    c.Error(err)
+}
+
+func SendBadRequest(c *gin.Context, err error) {
+    c.AbortWithStatusJSON(http.StatusBadRequest, err)
+    c.Error(err)
+}
+
+func SendNotFound(c *gin.Context, err error) {
+    c.AbortWithStatusJSON(http.StatusNotFound, err)
+    c.Error(err)
+}
+
+func SendError(c *gin.Context, err error) {
+    c.AbortWithStatusJSON(500, err)
+    c.Error(err)
+}
+```
+
+```go
+import "github.com/ShiinaOrez/ginny/pkg/errno"
+
+func Register(c *gin.Context) {
+    var data RegisterPayload
+    if err := c.BindJSON(&data); err != nil {
+        handler.SendBadRequest(c, errno.PayloadBadRequest)
+        return
+    }
+    if model.CheckUserByUsername(data.Username) {
+        handler.SendError(c, errno.UserAleadyExisted)
+        return
+    }
+    model.CreateUser(data.Username, data.Password)
+    handler.SendResponse(c, "Successful!")
+    return
+}
+```
+
+这样就完成了我们的自定义错误。而且还在日志中有错误输出。
+
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.3``来查看这个示例。
