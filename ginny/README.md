@@ -2,6 +2,8 @@
 
 Gin web development: Development Web Backend with Go.
 
+![ginny.png](https://i.loli.net/2019/09/19/3Y2Ht8KQNOyoWCv.png)
+
 # 第一部分  Gin简介
 
 ## 第1章  安装
