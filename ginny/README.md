@@ -888,3 +888,113 @@ func Register(c *gin.Context) {
 这样就完成了我们的自定义错误。而且还在日志中有错误输出。
 
     提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.3``来查看这个示例。
+
+### 4.3  中间件
+
+在开始讲解中间件之前，我们要先理一下``gin``中的内部类型逻辑：
+
+#### 4.3.1  HandlerFunc
+
+```go
+type HandlerFunc func(*Context)
+```
+
+也就是说任何只接受``gin.Context``为参数的函数就可以是``gin``眼中的业务逻辑处理函数了。而我们要讲解的**中间件**也是一个``HandlerFunc``
+
+#### 4.3.2  HandlersChain
+
+```go
+type HandlersChain []HandlerFunc
+
+func (c HandlersChain) Last() HandlerFunc {
+    if length := len(c); length > 0 {
+        return c[length-1]
+    }
+    return nil
+}
+```
+
+我们可以看到一个在我们眼中几乎不怎么出现的类型：``HandlersChain``，直接翻译的话很明显可以看出，是一个由``HandlerFunc``串成的链子。
+
+在这时你应该已经焕然大悟了，原来一个接受到了一个请求之后，它是会经历一系列的``HandlerFunc``的：
+
+```
+              Handler-1       Handler-2
+*Context     |---------|     |---------|
+request --->            --->            ---> ...
+             |---------|     |---------|
+```
+
+之前特意提起过的``Context.Abort()``方法，还有一个对应的``Context.Next()``方法。``Abort``方法用于中断这个``HandlersChain``的执行，但是还需要特意的返回，这是因为``Abort()``方法内部其实只是设置了``Context.index``属性：
+
+```go
+const abortIndex int8 = math.MaxInt8 / 2
+
+func (c *Context) Abort() {
+    c.index = abortIndex
+}
+```
+
+``Context``只是通过``index``属性来判断``HandlersChain``是否被abort了：
+
+```go
+func (c *Context) IsAborted() bool {
+    return c.index >= abortIndex
+}
+```
+
+我们假设我们现在处于``HandlersChain``的``[x]``位置，那么我们下一个就应该执行``HandlersChain[x+1]``的HandlerFunc，这个时候就要用到``Context.Next()``方法：
+
+```go
+func (c *Context) Next() {
+    c.index++
+    for c.index < int8(len(c.handlers)) {
+        c.handlers[c.index](c)
+        c.index++
+    }
+}
+```
+
+但是这里我们可以看到，如果是每次都要调用``Context.Next()``方法，这个方法应该这么写：
+
+```go
+func (c *Context) Next() {
+    c.index++
+    c.handlers[c.index](c)
+}
+```
+
+但是源码中使用了一个循环，这就代表着一旦我们使用``Context.Next()``启动了这个``HandlersChain``，它就会自动执行下去，除非中间调用了``Context.Abort()``方法。
+
+也就是说：**如果你保证一个中间件完全是在中间执行的，那么你完全可以不用写c.Next()**
+
+虽说是Handlers**Chain**，但是其实也不是一定按照链子的方式来执行，事实上除了前期处理工作，也可以有后续处理：
+
+```go
+func MyMiddleware(c *gin.Context) {
+    // pre
+    c.Next()
+    // after
+}
+```
+
+比如我们可以写一个自己的计算响应时间的中间件：（虽然gin自带有很好的log，但是就当做练习来写）
+
+```go
+import (
+    "fmt"
+    "time"
+    "github.com/gin-gonic/gin"
+)
+
+func Timer(c *gin.Context) {
+    startTime := time.Now()
+    c.Next()
+    endTime := time.Now()
+    fmt.Println("Cost:", endTime.Sub(startTime).Nanoseconds(), "(nano seconds).")
+}
+```
+
+这里就只是简单的介绍一下中间件，具体的中间件会在后面进行撰写。
+
+-------
