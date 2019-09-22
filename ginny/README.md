@@ -674,7 +674,7 @@ func Login(c *gin.Context) { // 用于登录路由的处理函数
 
 那我们在撰写工具函数之前，我们应该更加多的去了解``c.JSON()``方法和``gin.H``类型：
 
-#### 4.1.1 gin生成响应的方式
+#### 4.1.1  gin生成响应的方式
 
 让我们打开``gin.Context``所在的[文件](https://github.com/gin-gonic/gin/blob/master/context.go), 我们找到了这样几个方法：
 
@@ -998,3 +998,189 @@ func Timer(c *gin.Context) {
 这里就只是简单的介绍一下中间件，具体的中间件会在后面进行撰写。
 
 -------
+
+## 第5章  加密和令牌
+
+现在我们回头讨论业务方面的问题，关于敏感信息加密的问题。
+
+什么是**敏感信息**呢？举个例子，密码就是十分敏感的信息，而用户名则没有那么重要。密码对于一个账户而言是至关重要的，是获取其他敏感信息的“**钥匙**”。
+
+在我们之前撰写的简单接口中，并未对密码有过任何的加密处理，全部都是明文传输，这是**相当危险**的行为！所以从现在开始我们开始进行对于信息的加密。
+
+### 5.1  对称加密、非对称加密和散列
+
+**对称加密**：
+
+```
+       秘钥
+     ------>
+信息          密文
+     <------
+```
+
+对称加密，顾名思义，可以通过一个秘钥将生成的密文通过一定的规则还原成原文。
+
+常见的对称加密算法：
+
+    DES、3DES、DESX、Blowfish、IDEA、RC4、RC5、RC6和AES
+
+**非对称加密**：
+
+```
+       秘钥1
+     ------>
+信息          密文
+     <------
+       秘钥2
+```
+
+非对称加密在知道对称加密的情况下就很好理解了，非对称加密就是加密过程和解密过程使用两套秘钥的加密。
+
+对称加密和非对称加密都是加密，也就是可以完成从密文到原文的转换，而散列则是只能从原文到密文，却**无法从密文完成到明文的转换**。
+
+**散列**：
+
+**散列**原意是为了完成一种压缩映射（事实上散列并不是加密，但是我会使用加密这个词语来表述加密的过程），一般压缩空间比原空间要小得多，因此会出现冲突的情况（也就是两个值的散列值是相同的）
+
+但是我们在使用散列时并不是为了创建映射，而是为了让原数据失去本身的特征，这样就可以使敏感信息无法通过密文复原。但是却又可以用来验证原文的信息。
+
+散列：
+
+```
+     散列算法
+     ------>
+信息          密文
+     <--X---
+```
+
+我们就是通过使用存储密码的散列值来达到对于敏感信息的加密的。
+
+### 5.2  盐值
+
+我们之前提到过，**散列一定会存在冲突**，举个很简单的例子：我们对一个字符串的散列方式是将它们的ASCII码值都加起来。（这个过程一般用一个函数来描述，称为哈希函数HashFunction）
+
+```go
+func HashFunc(s string) (value int) {
+    for _, r := range s {
+        value += int(r)
+    }
+    return
+}
+```
+
+然后我们使用最简单的样例去进行测试： "CCC", "BCD", "ACE"
+
+很显然，可预见范围内这三次调用的结果都是``201``，这就是冲突，三个明明完全不同的值，散列后的结果确实一样的。
+
+这种冲突的优化一般有三种，这里不再赘述，但是这催生出了一些著名的散列算法：
+
+    MD2、MD4、MD5、HAVAL、SHA、SHA-1、HMAC、HMAC-MD5、HMAC-SHA1
+
+这些散列算法很好，能够保证冲突的尽可能少的发生。但是也存在一个问题：这些算法是公开的，这就有一个很大的问题存在了。
+
+既然这个算法保证了低冲突率，那么就有人直接把所有的字符串按照一种散列算法直接暴力列出结果，到时候再用结果倒推来源，人称**彩虹表**，这种表动辄上百G，因此如果单纯使用一种散列算法依然无法保证我们服务的安全性。
+
+所以我们要在我们的信息中再加一点不稳定因素：**盐值**，我们在记录散列值之前，在原数据中撒点盐，这样就变成了和原数据不同的数据，然后我们再记录散列值和盐值，这样我们可以校验我们数据，外界又无法使用彩虹表这种暴力破解手段。
+
+在Go语言中有``crypto``包，包内是一些常见的加密和散列方法，我们的例子就使用``sha256``：
+
+```go
+// ./util/hash.go
+
+package util
+
+import (
+    "io"
+    "crypto/sha256"
+    "crypto/rand"
+    "encoding/hex"
+)
+
+func PasswordHash(password string) (string, string, error) {
+    h := sha256.New()
+    h.Write([]byte(password))
+    salt, err := generateSalt(6)
+    if err != nil {
+        return "", "", err
+    }
+    h.Write(salt)
+    passwordHash := hex.EncodeToString(h.Sum(nil))
+    return passwordHash, hex.EncodeToString(salt), nil
+}
+
+func generateSalt(length int) ([]byte, error) {
+    salt := make([]byte, length)
+    _, err := io.ReadFull(rand.Reader, salt)
+    if err != nil {
+        return []byte{}, err
+    }
+    return salt, nil
+}
+```
+
+然后让我们测试一下：
+
+```go
+passwordHash, salt, _ := util.PasswordHash("testPassword6")
+fmt.Println(passwordHash, salt)
+// a07505c3f37b147580c94080edadb39503114b18301fbadd298761aa72b3b73c 
+// b2de001c7382
+// <nil>
+```
+
+看上去得到了不错的结果，然后我们试试能不能用这个散列值和盐值去验证密码呢？
+
+```go
+func CheckPassword(password, passwordHash, salt string) bool {
+    h := sha256.New()
+    h.Write([]byte(password))
+    saltBytes, err := hex.DecodeString(salt)
+    if err != nil {
+        return false
+    }
+    h.Write(saltBytes)
+    return hex.EncodeToString(h.Sum(nil)) == passwordHash
+}
+```
+
+然后我们再继续做一个小测试：
+
+```go
+fmt.Println(util.CheckPassword("testPassword6", passwordHash, salt))
+// true
+```
+
+这样的话，我们就完成了对于密码的加盐散列。
+
+### 5.3  改变数据库的字段
+
+我们以前的用户表的结构是这样的：
+
+```sql
+CREATE TABLE `users` (
+    `id`       int unsigned   NOT NULL AUTO_INCREMENT,
+    `username` varchar(64)    NOT NULL,
+    `password` varchar(64)    NOT NULL,
+  
+    PRIMARY KEY (`id`)
+)
+```
+
+现在我们要改成这样：
+
+```sql
+CREATE TABLE `users` (
+    `id`            int unsigned   NOT NULL AUTO_INCREMENT,
+    `username`      varchar(64)    NOT NULL,
+    `password_hash` varchar(128)   NOT NULL,
+    `salt`          varchar(32)    NOT NULL,
+  
+    PRIMARY KEY (`id`)
+)
+```
+
+可以直接``DROP``掉整个表然后新建，也可以使用``ALTER``语句来更改结构。
+
+    提示：可以在本教程的附属仓库 https://github.com/ShiinaOrez/ginny.git 中通过标签``v0.2.4``来查看这个示例。
+
+------
