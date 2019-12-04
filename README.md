@@ -1333,3 +1333,39 @@ HTTP请求是遵循HTTP协议的请求方式, 一般拥有的属性有: **请求
 前后端合并的方式是比较初级的开发方式：由一个人独立开发整个应用，这使得对于程序员的技术要求更高，因为需要同时熟悉使用前端和后端的技术栈，这对于个人能力的考验是很大的。并且由个人维护的应用往往会出现难以让他人参与开发，难上手等各种问题。
 
 因此在现在普遍使用的是前后端分离的开发方法，前端和后端约定一套应用编程接口，然后分离开发，这样既可以降低对于程序员个人能力的要求，对于整个应用的维护也是很好的。
+
+#### 使用net/http搭建最简单的接口
+
+首先，使用`net/http`需要在代码中使用以下语句：
+
+```go
+import "net/http"
+```
+
+然后一起来写一个最简单的示例：
+
+```go
+package main
+
+import (
+    "fmt"
+    "net/http"
+    "time"
+)
+
+func showTimeNow(w http.ResponseWriter, r *http.Request) {
+    t := time.Now()
+    str := fmt.Sprintf(t.Format(time.RFC3339))
+    w.Write([]byte(str))
+    return
+}
+
+func main() {
+    http.HandleFunc("/time/now/", showTimeNow)
+    http.ListenAndServe(":8080" ,nil)
+}
+```
+
+这个示例的作用非常的清晰：主函数内我们首先使用`http.HandleFunc`方法来建立处理函数和路由的映射关系，然后使用`http.ListenAndServe`方法来进行对于某个端口的监听。
+
+在我们运行了这个简单的示例之后，就可以在本机的localhost:8080/time/now/建立起一个API，可以使用浏览器直接打开，你会看到格式化输出的当前的时间。
