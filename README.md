@@ -1411,3 +1411,18 @@ func main() {
 
 #### net/http中的类型与接口
 
+作为一个集成了HTTP中内容的包，`net/http`包中包含了大量的类型和接口，以便向用户提供更友好的方法。
+
+在[net/http官方文档](https://golang.org/pkg/net/http/#Header)中可以看到全部的类型的定义，以及所有的方法以及作用，本小节主要介绍以下几个类型：
+
++ Client
++ Cookie
++ Header
++ Request
++ Response
+
+1. Client
+2. Cookie
+3. Header
+4. Request
+5. Response
