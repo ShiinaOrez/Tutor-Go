@@ -1422,7 +1422,28 @@ func main() {
 + Response
 
 1. Client
+
+Client类型的实例是一个HTTP协议的客户端，它的默认值（零值）是使用DefaultTransport的可用客户端。
+
+客户端一般会在内部维护一个传输的状态，比如带有缓存的TCP链接，因此在必要时，应该重新使用客户端，而不是重复的创建客户端。一个Client可以被多个goroutine安全的并发使用。
+
+Client比起RoundTripper更加的高级，还附加了对于HTTP中详细信息的处理机制，比如Cookie和重定向。
+
+在重定向请求时，Client将转发在初始请求中设置的全部请求头，但是以下情况不会：
+
++ 当带有敏感信息的头部被转发到不被信任的目标时：比如"Authorization", "WWW-Authenticate"和Cookie。当重定向到不匹配的子域或者不是初始域时，以上头部会被忽略。比如，请求从"foo.com"重定向到"foo.com"或"sub.foo.com"时，带有敏感信息的头部会被一起转发，但是转发到"bar.com"时是不会的。
++ 当使用内部CookieJar为nil的Client转发Cookie时，由于每一次的重定向都可能改变CookieJar的状态，因此一次重定向可能会改变初始请求中的CookieJar。所以当转发Cookie头部时，所有的突变都会被无视，面对这种情况CookieJar会把这些突变的值更新到Jar中。如果CookieJar为nil，则原封不动的转发初始请求的Cookie。
+
 2. Cookie
+
+
+
 3. Header
+
+
+
 4. Request
+
+
+
 5. Response
