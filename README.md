@@ -25,7 +25,7 @@
 
 显然这句话中有三个关键字：简单，可靠，高效。
 
-#### 1. 简单
+#### 1.1  简单
 
 Go语言的哲学，是简简单单的一句话：
 
@@ -41,7 +41,7 @@ Go想要这样做：使用**足够简单的方式**来解决一切问题。并�
 + [大道至简](https://commandcenter.blogspot.com/2012/06/less-is-exponentially-more.html)
 + [Go语言：攀登的十年](https://commandcenter.blogspot.com/2017/09/go-ten-years-and-climbing.html)
 
-#### 2. 可靠
+#### 1.2  可靠
 
 在Go语言被设计的第一天，就有这样一个想法：**以C语言作为起点**。（虽然最后没这么做）
 
@@ -52,7 +52,7 @@ Go想要这样做：使用**足够简单的方式**来解决一切问题。并�
 扩展阅读：
 + [简单易懂的Go语言内存管理](https://yq.aliyun.com/articles/652551)
 
-#### 3. 高效
+#### 1.3  高效
 
 也许Go语言是你人生中接触的第一门编程语言（我相信在不久的将来这个会变成现实的！）但是在现在（2019年）还是不太可能的，也就是说绝大多数人是因为Go语言的**特性**，或者说不得已的需求而接触的这门编程语言。
 
@@ -71,7 +71,7 @@ Go想要这样做：使用**足够简单的方式**来解决一切问题。并�
 
 不怎么用Windows，所以暂时只有Linux/Ubuntu 18.04的安装
 
-#### Linux/Ubuntu 18.04
+#### 2.1  Linux/Ubuntu 18.04
 
 ① 获取最新的golang安装源，并且更新到apt中
 ``add-apt-repository ppa:longsleep/golang-backports``
@@ -85,12 +85,12 @@ Go想要这样做：使用**足够简单的方式**来解决一切问题。并�
 ④ 使用``version``查看版本
 ``go version``
 
-#### 关于环境变量：
+#### 2.2  关于环境变量：
 
 **GOROOT**: Go语言编译、工具、标准库等的安装路径。
 **GOPATH**：Go语言的工作目录。
 
-#### 良好的目录结构：
+#### 2.3  良好的目录结构：
 
 ```bash
 go/
@@ -261,7 +261,7 @@ import (
 
 因为强类型，所以一个变量能够分配的内存空间相对来说是便于计算的，因此语言内部会在内存中为你的变量开辟一块内存空间，而这个内存空间的地址会被映射为变量名，而内存空间内存放的数据是什么并不被关心，就像是一个盒子，里面放了不同的数据。
 
-#### 变量的声明：
+#### 4.1  变量的声明：
 
 在Go语言中，声明一个新变量的方式有两种：``var``关键字和``:=``运算符。
 
@@ -284,7 +284,7 @@ var hello string; hello := "Hello, golang!" // 会报错，即使声明的变量
 hello, err := someFunc() // 便捷地接收函数返回的结果，前提也是一定是新的变量名
 ```
 
-#### Go语言的数据类型：
+#### 4.2  Go语言的数据类型：
 Go语言的类型系统非常的**简单**且**多变**，不同的组合形式可以产生成百上千上万的类型，也就是说，**通过不同方式的组合，Go语言中可以有无数个类型**。
 
 **1. 基本的数据类型**
@@ -515,7 +515,7 @@ map是使用Go语言时非常常用的类型，不论是编写并发代码还是
 
 顺序就不再赘述，接下来讲解基本常见的分支和循环的书写和常用模式。
 
-#### 常见的分支程序结构和模式：
+#### 5.1  常见的分支程序结构和模式：
 
 **1. if-else**
 
@@ -616,7 +616,7 @@ default:
 
 在真实的使用场景中，常常和``for``一起组合为``for-select``使用，这些将会在后面介绍。
 
-#### 常见的循环程序结构和模式：
+#### 5.2  常见的循环程序结构和模式：
 
 在Go语言中，表示循环的关键字就只有``for``。而``for``中可以有三种循环的模式：
 
@@ -1458,16 +1458,74 @@ func (c *Client) Get(url string) (resp *Response, err error) {
 
 最后一个没有提到的方法是`CloseIdleConnections`，字面意思是关闭所有的空闲连接，实际上也确实如此。
 
+-----
+
 2. Cookie
 
+HTTP Cookie是服务器发送到用户浏览器并且保存在本地的一小部分数据，它会在浏览器下次向同一个服务器再次发起请求时被一起携带。通常来讲，它用于告知服务端两个请求是否来自同一个浏览器（用户），比如保持用户的登录状态，Cookie使得基于无状态的HTTP协议记录稳定的状态信息成为了可能。（摘自[Mozilla-Cookie](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Cookies)）
 
+而http包中的Cookie类型，代表从HTTP响应中`Set-Cookie`头部接受，或者在请求的Cookie头部中发送的信息。
+
+Cookie类型是内容向类型，内部结构：
+
+```go
+type Cookie struct {
+    Name  string
+    Value string
+
+    Path       string    // optional
+    Domain     string    // optional
+    Expires    time.Time // optional
+    RawExpires string    // for reading cookies only
+
+    // MaxAge=0 means no 'Max-Age' attribute specified.
+    // MaxAge<0 means delete cookie now, equivalently 'Max-Age: 0'
+    // MaxAge>0 means Max-Age attribute present and given in seconds
+    MaxAge   int
+    Secure   bool
+    HttpOnly bool
+    SameSite SameSite // Go 1.11
+    Raw      string
+    Unparsed []string // Raw text of unparsed attribute-value pairs
+}
+```
+
+其中的字段都和[RFC-6265](https://tools.ietf.org/html/rfc6265)中描述的一致，作用可以自己去查看。
+
+Cookie类型的实例拥有一个名为`String`的方法，用于返回一个Cookie字符串。
+
+----
 
 3. Header
 
+Header代表HTTP中的头部信息，以键值对的方式来进行存储。
 
+```go
+type Header map[string][]string
+```
+
+很是简单，对不对？因为Header就是键值对，而一个键可以有多个值，因此对应的是一个string的切片。
+
+Header类型的实例拥有`Add`, `Clone`, `Del`, `Get`, `Set`, `Write`, `WriteSubset`。看上去就是基本的CURD的操作，事实上也确实如此。
+
+`Add`方法传入一个键值对，将其添加到Header中，并且是大小写不敏感的。
+
+`Clone`方法返回一个实例的副本，当实例为nil时返回nil。（这里需要注意，Header所有方法的接受者是值接受者，因此允许为nil进行方法调用）
+
+`Del`方法用于删除一个键值对，传入一个键。
+
+`Get`方法传入一个键的string，然后返回一个格式化后的字符串。
+
+`Set`方法也是传入键值对的方式，但是会把该键对应的目标值直接替换为传入的值，而不是追加。同样的，大小写不敏感。
+
+`Write`方法将Header的内容写进传入的Writer，写入的格式是有线的。
+
+`WriteSubset`方法除了传入一个Writer之外，还将传入一个Map，用于标志写入哪些Header中的键值对。当传入的Map为nil时全部写入，否则，将Map中值为true的键**不**进行写入。
+
+-----
 
 4. Request
 
-
+请求和响应，是每个网络相关包的大头，内容过长警告⚠️。
 
 5. Response
