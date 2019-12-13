@@ -1283,7 +1283,7 @@ var (
 
 在本节中, 我们主要使用的包为 ``net/http`` 包.
 
-#### 基础知识:
+#### 9.1  HTTP基础知识:
 
 1. 客户端和服务端
 
@@ -1334,7 +1334,7 @@ HTTP请求是遵循HTTP协议的请求方式, 一般拥有的属性有: **请求
 
 因此在现在普遍使用的是前后端分离的开发方法，前端和后端约定一套应用编程接口，然后分离开发，这样既可以降低对于程序员个人能力的要求，对于整个应用的维护也是很好的。
 
-#### 使用net/http搭建最简单的接口
+#### 9.2  使用net/http搭建最简单的接口
 
 首先，使用`net/http`需要在代码中使用以下语句：
 
@@ -1409,7 +1409,7 @@ func main() {
 
 拿到内容之后我们打印出来就可以了，我的命令行会打印出：`2019-12-12T00:27:27+08:00`。
 
-#### net/http中的类型与接口
+#### 9.3  net/http中的类型与接口
 
 作为一个集成了HTTP中内容的包，`net/http`包中包含了大量的类型和接口，以便向用户提供更友好的方法。
 
@@ -1420,6 +1420,8 @@ func main() {
 + Header
 + Request
 + Response
+
+----
 
 1. Client
 
@@ -1433,6 +1435,28 @@ Client比起RoundTripper更加的高级，还附加了对于HTTP中详细信息�
 
 + 当带有敏感信息的头部被转发到不被信任的目标时：比如"Authorization", "WWW-Authenticate"和Cookie。当重定向到不匹配的子域或者不是初始域时，以上头部会被忽略。比如，请求从"foo.com"重定向到"foo.com"或"sub.foo.com"时，带有敏感信息的头部会被一起转发，但是转发到"bar.com"时是不会的。
 + 当使用内部CookieJar为nil的Client转发Cookie时，由于每一次的重定向都可能改变CookieJar的状态，因此一次重定向可能会改变初始请求中的CookieJar。所以当转发Cookie头部时，所有的突变都会被无视，面对这种情况CookieJar会把这些突变的值更新到Jar中。如果CookieJar为nil，则原封不动的转发初始请求的Cookie。
+
+Client类型的实例拥有六个方法：`CloseIdleConnections`, `Do`, `Get`, `Head`, `Post`, `PostForm`. 可以很明显的看出`Get`, `Head`, `Post`, `PostForm`，都是一类方法：它们代表具体的请求方法，而`PostForm`则是以特定的方式：表单，去提交数据。
+
+而在源码中，以上这些特殊方法：`PostForm`是调用`Post`方法来实现的。而`Get`, `Head`, `Post`都是通过调用`Do`方法来实现的，比如让我们看一下`Get`方法的源码：
+
+```go
+func (c *Client) Get(url string) (resp *Response, err error) {
+	req, err := NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Do(req)
+}
+```
+
+在该方法中，首先根据传入的参数（url）构建了一个GET方法的请求（请求类型Request），然后紧接着就调用了我们没有解释过的`Do`方法。
+
+**关于Do**
+
+`Do`方法的意义非常的“字面化”，就是客户端去执行（Do）一个特定的请求，然后返回该请求的响应。net/http封装了特定的请求方法，但是实际上这些方法都是依托`Do`方法来实现的。因此所有人在需要时都可以自己封装类似于`Delete`, `Option`之类的方法，或者`PostJSON`这种方法。或者直接手动构建一个请求然后去调用`Do`方法，这样更加直截了当。
+
+最后一个没有提到的方法是`CloseIdleConnections`，字面意思是关闭所有的空闲连接，实际上也确实如此。
 
 2. Cookie
 
