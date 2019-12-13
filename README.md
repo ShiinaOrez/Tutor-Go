@@ -1528,4 +1528,80 @@ Header类型的实例拥有`Add`, `Clone`, `Del`, `Get`, `Set`, `Write`, `WriteS
 
 请求和响应，是每个网络相关包的大头，内容过长警告⚠️。
 
+一个Request类型的对象表示一个从服务端发向客户端的HTTP请求。对于客户端和服务端而言Request中某些字段的语义略有不同。
+
+Request结构体的内部结构：（注释太多都删掉了，想看的可以去[这里](https://golang.org/pkg/net/http/#Request)看）
+
+```go
+type Request struct {
+    Method string
+    URL *url.URL
+
+    Proto      string // "HTTP/1.0"
+    ProtoMajor int    // 1
+    ProtoMinor int    // 0
+
+    Header Header
+    Body io.ReadCloser
+    GetBody func() (io.ReadCloser, error) // Go 1.8
+    ContentLength int64
+    TransferEncoding []string
+    Close bool
+    Host string
+    Form url.Values
+    PostForm url.Values // Go 1.1
+    MultipartForm *multipart.Form
+    Trailer Header
+    RemoteAddr string
+    RequestURI string
+    TLS *tls.ConnectionState
+    Cancel <-chan struct{} // Go 1.5
+    Response *Response // Go 1.7
+}
+```
+
+接下来将一一解释其中的意义：
+
+`Method`字段表示一个确切的HTTP请求方法，不支持CONNECT方法。当字段为空串时，为GET方法。
+
+`URL`字段为`*url.URL`类型，表示了一个确切的要被请求的URI（对于服务器的请求）或URL（对于客户端的请求），对于大多数的请求而言，除了Path和Query之外的字段都是空。
+
+附：[url.URL](https://golang.org/pkg/net/url/#URL)（真的越写越多，越写越长）
+
+```go
+type URL struct {
+    Scheme     string
+    Opaque     string    // encoded opaque data
+    User       *Userinfo // username and password information
+    Host       string    // host or host:port
+    Path       string    // path (relative paths may omit leading slash)
+    RawPath    string    // encoded path hint (see EscapedPath method); added in Go 1.5
+    ForceQuery bool      // append a query ('?') even if RawQuery is empty; added in Go 1.7
+    RawQuery   string    // encoded query values, without '?'
+    Fragment   string    // fragment for references, without '#'
+}
+```
+
+`Proto`字段标识使用的HTTP协议。默认是HTTP/1.0
+
+`ProtoMajor`字段标识HTTP协议版本号的整数部分，默认为1.
+
+`ProtoMinor`字段标识HTTP协议版本号的小数部分，默认为0.
+
+`Header`字段存储着请求的头部信息，之前介绍过了。
+
+`Body`字段为`io.ReadCloser`类型，内容就是请求的主体（Body）信息，对于客户端的请求，本字段为nil表示请求没有主体内容，比如一个GET请求。而对于服务端的请求而言，本字段将不会为nil，但是主体不为空的时候，将直接返回一个EOF，然后服务端就会立即关闭这个Reader。
+
+`GetBody`字段为一个函数，直接返回一个`io.ReadCloser`和`error`。本字段定义了一个可选的能够返回Body的副本的函数。通常用于一个需要多次读取Body的重定向请求。在调用这个函数之前要确保Body的值被设置了。而对于服务端的请求而言，这个字段是没有意义的。
+
+``
+
+``
+
+``
+
+``
+
+----
+
 5. Response
