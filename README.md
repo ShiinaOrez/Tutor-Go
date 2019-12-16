@@ -1409,7 +1409,7 @@ func main() {
 
 拿到内容之后我们打印出来就可以了，我的命令行会打印出：`2019-12-12T00:27:27+08:00`。
 
-#### 9.3  net/http中的类型与接口
+#### 9.3  net/http中的重要类型与接口
 
 作为一个集成了HTTP中内容的包，`net/http`包中包含了大量的类型和接口，以便向用户提供更友好的方法。
 
@@ -1594,11 +1594,29 @@ type URL struct {
 
 `GetBody`字段为一个函数，直接返回一个`io.ReadCloser`和`error`。本字段定义了一个可选的能够返回Body的副本的函数。通常用于一个需要多次读取Body的重定向请求。在调用这个函数之前要确保Body的值被设置了。而对于服务端的请求而言，这个字段是没有意义的。
 
-``
+`ContentLength`字段为一个`int64`类型的整数，用于记录携带内容的长度，如果是-1则代表长度是未知的，大于零则代表可能从Body中读取的字节序列的长度。对于客户端的请求，本字段为0且Body为nil讲同等为长度未知对待。
 
-``
+`TransferEncoding`字段为一个字符串切片类型，列出了一个请求从最外层到最内层的编码序列，空列表表示“Identity”编码。本字段通常可以被忽略，分块编码会在发送和接受时视需求而自动增删。
 
-``
+`Close`字段为`bool`类型，对于服务器请求而言，表示是否在响应一个请求之后关闭连接，而对于客户端请求而言，表示是否在发送这个请求并接收到响应之后关闭连接。对于服务器端的请求，HTTP服务器会自动处理，因此不需要特殊处理。而对于客户端请求而言，设置本字段会在发起每个请求时创建连接，就设置了`DisableKeepAlives`一样。
+
+`Host`字段为字符串类型，对于服务器请求而言，为其请求URl中的Host部分。对于国际域名，本字段可能为`Punycode`或者`Unicode`结构，可以使用[golang.org/x/net/idna](golang.org/x/net/idna)来自由进行转换。为了遏制DNS的重绑定攻击，服务器上的处理函数应该验证本字段是否是被认证的的。
+
+`Form`字段为[url.Values](https://golang.org/pkg/net/url/#Values)类型，包含了解析后的表单数据，既有`URl`中的`Query`参数，也有`PATCH`，`POST`和`PUT`方法提交的表单数据。本字段只有在调用了`ParseForm()`方法之后才是可用的。HTTP客户端无视表单，转而使用`Body`传输数据。
+
+`PostForm`字段也为[url.Values](https://golang.org/pkg/net/url/#Values)类型，包含的是单纯的由`PATCH`，`POST`和`PUT`方法提交的表单数据。也是要先行调用`ParseForm()`方法。
+
+`MultipartForm`字段为[*multipart.Form](https://golang.org/pkg/mime/multipart/#Form)类型，其内容是Multipart的表单数据，比如说上传的文件。同样要在调用`ParseMultipartForm()`方法之后才可用。
+
+`Trailer`字段是`Header`类型的，对于服务端请求，本字段将仅仅包含在`Trailer`头部中的键，值全部为`nil`。当处理程序从`Body`中读取数据时，必须不能引用本字段，只有在`Body`返回`EOF`时，本字段才能再次被读取，并且会包含有非空数据（如果客户端发送了的话）。对于客户端请求而言，本字段必须被初始化为接下来可能要发送的键的`map`，值可以是`nil`或者其他零值，在分块发送时`ContentLength`字段必须为`0`或者`-1`。在请求发送之后，当请求发送的数据被读取时，本字段的值可以被更新。一旦在请求的数据被读出`EOF`后，本字段不可被更改。只有极少的HTTP客户端，服务器和代理支持本功能。
+
+`RemoteAddr`字段为字符串类型，本字段允许HTTP服务器或者其他软件记录下发送请求的机器的网络地址，通常用于输出日志。本字段不会被`ReadRequest()`方法自动填充，并且没有固定的格式。HTTP客户端可以忽略本字段。
+
+`RequestURI`字段为字符串类型，本字段是从客户端到服务器，未经更改的原请求目标`URI`，通常使用`URL`。
+
+`TLS`字段为[*tls.ConnectionState](https://golang.org/pkg/crypto/tls/#ConnectionState)类型，本字段允许HTTP服务器或者其他的软件记录接收到请求的TLS连接的信息，同样，本字段不会因为调用`ReadRequest()`方法而变得可用。本包中的HTTP服务器在调用处理程序之前会设置`TLS-enabled`字段，否则字段将为零值。HTTP客户端会忽略本字段
+
+`Cancel`字段为`<-chan struct{}`类型，用于取消客户端发起的请求，对于服务端请求则不适用。本字段是可选的，并不是所有的`Round`
 
 ``
 
