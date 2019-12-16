@@ -1616,9 +1616,9 @@ type URL struct {
 
 `TLS`字段为[*tls.ConnectionState](https://golang.org/pkg/crypto/tls/#ConnectionState)类型，本字段允许HTTP服务器或者其他的软件记录接收到请求的TLS连接的信息，同样，本字段不会因为调用`ReadRequest()`方法而变得可用。本包中的HTTP服务器在调用处理程序之前会设置`TLS-enabled`字段，否则字段将为零值。HTTP客户端会忽略本字段
 
-`Cancel`字段为`<-chan struct{}`类型，用于取消客户端发起的请求，对于服务端请求则不适用。本字段是可选的，并不是所有的`Round`
+`Cancel`字段为`<-chan struct{}`类型，用于取消客户端发起的请求，对于服务端请求则不适用。本字段是可选的，并不是所有的`RoundTripper`都支持取消请求。
 
-``
+`Response`字段为`*Response`类型，是导致本请求创建的重定向响应，本字段仅在客户端重定向期间会被使用。
 
 ----
 
