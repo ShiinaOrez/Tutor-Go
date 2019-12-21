@@ -1614,7 +1614,7 @@ type URL struct {
 
 `RequestURI`字段为字符串类型，本字段是从客户端到服务器，未经更改的原请求目标`URI`，通常使用`URL`。
 
-`TLS`字段为[*tls.ConnectionState](https://golang.org/pkg/crypto/tls/#ConnectionState)类型，本字段允许HTTP服务器或者其他的软件记录接收到请求的TLS连接的信息，同样，本字段不会因为调用`ReadRequest()`方法而变得可用。本包中的HTTP服务器在调用处理程序之前会设置`TLS-enabled`字段，否则字段将为零值。HTTP客户端会忽略本字段
+`TLS`字段为[*tls.ConnectionState](https://golang.org/pkg/crypto/tls/#ConnectionState)类型，本字段允许HTTP服务器或者其他的软件记录接收到请求的TLS连接的信息，同样，本字段不会因为调用`ReadRequest()`方法而变得可用。本包中的HTTP服务器在调用处理程序之前会设置`TLS-enabled`字段，否则字段将为零值。HTTP客户端会忽略本字段。
 
 `Cancel`字段为`<-chan struct{}`类型，用于取消客户端发起的请求，对于服务端请求则不适用。本字段是可选的，并不是所有的`RoundTripper`都支持取消请求。
 
@@ -1623,3 +1623,57 @@ type URL struct {
 ----
 
 5. Response
+
+一个Response类型的对象代表对于一个HTTP请求的响应。当HTTP客户端和Transport接收到了来自服务器的响应头时，会立即返回Response的实例。在读取Response的Body字段时，将以按需的方式从字节流中进行读取。
+
+Response的内部构成：
+
+```go
+type Response struct {
+    Status     string // e.g. "200 OK"
+    StatusCode int    // e.g. 200
+    Proto      string // e.g. "HTTP/1.0"
+    ProtoMajor int    // e.g. 1
+    ProtoMinor int    // e.g. 0
+
+    Header Header
+    Body io.ReadCloser
+    ContentLength int64
+    TransferEncoding []string
+    Close bool
+    Uncompressed bool // Go 1.7
+    Trailer Header
+    Request *Request
+
+    TLS *tls.ConnectionState // Go 1.3
+}
+```
+
+`Status`字段为字符串类型，和注释中写的一样，是由状态码和描述一起拼接而成的。
+
+`StatusCode`字段为`int`类型，用于表示响应的状态码，比如2xx, 3xx, 4xx, 5xx等等，至于具体的状态码是什么意思，自己去查。
+
+`Proto`字段为字符串类型，用于标识HTTP协议。
+
+`ProtoMajor`字段为`int`类型，代表当前的HTTP协议的版本号的整数部分。
+
+`ProtoMinor`字段为`int`类型，代表当前HTTP协议的版本号的小数部分。
+
+`Header`字段为`Header`类型，代表响应头。
+
+`Body`字段为`io.ReadCloser`类型，代表响应的正文内容。本字段是以按需的方式读取，以字节流的方式进行传输的。如果网络连接失败或者服务器终止响应，则读取本字段时将会抛出异常。HTTP客户端和Transport保证了即便响应没有包含正文，或者正文长度为0时，本字段也不为`nil`。调用者**一定要关闭**对于正文的读取，否则之后的HTTP客户端不会重用以前的TCP连接。
+
+`ContentLength`字段为`int64`类型，记录了相关联内容的长度，如果值为-1则代表长度是未知的。除非请求的方法是HEAD，否则本字段代表能从`Body`字段中读出的字节数。
+
+`TransferEncoding`字段为字符串切片类型，包含从最外部到最内部的传输编码，如果值为`nil`，则表示使用`Identity`编码。
+
+`Close`字段为布尔类型，本字段记录了在读取正文之后，是否关闭连接。
+
+`Uncompressed`字段为布尔类型，本字段标识响应是否被压缩发送但是又被`http`包解压缩了。如果本字段为真，则从`Body`中读取解压后的内容而非服务端实际发送的被压缩的内容，`ContentLength`字段的值被设置为-1，并且`Content-Length`和`Content-Encoding`两个字段将在响应头中被删除。
+
+`Trailer`字段是Header类型的，本字段将trailer中的键值对映射为Header的格式。本字段初始化时仅包含`nil`，所有的值都来源于服务端发送的`Trailer`头部，这些被解析出的值不会被添加到响应头中。在读取响应正文时，本字段不允许被调用。只有当`Body`返回`io.EOF`后，本字段的所有值才就绪（可以被使用且是正确的）。
+
+`Request`字段为Request的指针类型，是本响应所对应的请求。
+
+`TLS`字段为[*tls.ConnectionState](https://golang.org/pkg/crypto/tls/#ConnectionState)类型，包含了TLS连接到具体接收响应的链路信息，对于没有加密的响应，本字段的值应该为`nil`。
+
