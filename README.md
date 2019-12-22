@@ -1677,3 +1677,5 @@ type Response struct {
 
 `TLS`字段为[*tls.ConnectionState](https://golang.org/pkg/crypto/tls/#ConnectionState)类型，包含了TLS连接到具体接收响应的链路信息，对于没有加密的响应，本字段的值应该为`nil`。
 
+----
+
