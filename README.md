@@ -29,7 +29,7 @@
 
 Go语言的哲学，是简简单单的一句话：
 
-  **Less is more.**
+> **Less is more.**
 
 **Less is more.** 这句话来源于**Rob Pike**（Go语言的创造者之一）在2012年的6月份的演讲[Less is exponentially more.](https://commandcenter.blogspot.com/2012/06/less-is-exponentially-more.html)，这个演讲直译成中文的意思是：“少是指数级的多”，意译过来则是**大道至简**。
 
